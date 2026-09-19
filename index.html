@@ -15,8 +15,9 @@ header .sub{font-family:Verdana,sans-serif;font-size:.75rem;opacity:.85}
 #coordBtn{font-family:Verdana,sans-serif;font-size:.8rem;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
 #coordBtn.on{background:var(--accent);border-color:var(--accent);color:#2c2416}
 nav{display:flex;gap:6px;flex-wrap:wrap;padding:9px 12px;background:rgba(255,255,255,.91);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
-nav button{font-family:Verdana,sans-serif;font-size:.8rem;padding:7px 12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:20px;cursor:pointer}
-nav button.active{background:var(--green);color:#fff;border-color:var(--green)}
+nav button{font-family:Verdana,sans-serif;font-size:.8rem;font-weight:700;padding:8px 13px;border:1px solid #b8cbbf;background:#eef8f1;color:#175f3d;border-radius:20px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+nav button:hover{background:#dff2e5;border-color:#78a98b}
+nav button.active{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 2px 7px rgba(0,131,79,.28)}
 main{max-width:920px;margin:0 auto;padding:16px}
 .card{background:var(--panel);border:1px solid rgba(255,255,255,.82);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 5px 18px rgba(73,54,28,.10)}
 h2{margin-top:0;font-size:1.05rem}
@@ -80,7 +81,7 @@ function uid(){return Math.random().toString(36).slice(2,10)}
 function defaultState(){
   let girls=GIRL_NAMES.map(n=>({id:uid(),name:n}));
   let girlInv={}; girls.forEach(g=>girlInv[g.id]={inv:{},paid:0});
-  return {girls,cookies:COOKIES,troopInv:{},girlInv,transfers:[],booths:[],online:[],pw:'cookies2026'};
+  return {girls,cookies:COOKIES,troopInv:{},girlInv,transfers:[],inventoryReceipts:[],booths:[],online:[],pw:'cookies2026'};
 }
 let state=null, coord=false, db=null, docRef=null, ready=false;
 function setStatus(cls,text){const el=document.getElementById('status'); el.className=cls; el.textContent=text;}
@@ -180,15 +181,49 @@ function mineDetail(gid){
 function renderTroop(){
   let rows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${state.troopInv[c.key]||0}</td><td>${money(c.price)}</td></tr>`).join('');
   let editRows= coord? state.cookies.map(c=>`<div class="grid2"><label>${c.name} qty</label><input type="number" id="ti_${c.key}" value="${state.troopInv[c.key]||0}"></div>`).join('') :'';
+  let addRows=coord?state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="receiptQty" data-key="${c.key}" placeholder="0"></div>`).join(''):'';
+  let receiptRows=[...(state.inventoryReceipts||[])].reverse().map(r=>`<tr><td>${r.date}</td><td>${r.source==='troop-transfer'?'Transfer from Troop '+(r.troopNumber||'—'):'Cupboard pickup'}</td><td>${state.cookies.map(c=>r.items[c.key]?`${c.name} ${r.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${r.notes||''}</td><td class="row-actions">${coord?`<button class="btn danger" onclick="delInventoryReceipt('${r.id}')">Delete</button>`:''}</td></tr>`).join('');
   return `<div class="card"><h2>Troop cupboard inventory</h2>
   <table><tr><th>Cookie</th><th>Boxes on hand</th><th>Price/box</th></tr>${rows}</table>
   <p class="muted">This is stock the troop is holding that hasn't been checked out to a Girl Scout yet (e.g. cupboard pickups, initial order).</p>
-  ${coord?`<h3>Update cupboard counts <span class="badge">Coordinator</span></h3>${editRows}<button class="btn" onclick="saveTroopInv()">Save cupboard counts</button>`:'<p class="small">Only coordinators can edit cupboard totals.</p>'}
-  </div>`;
+  ${coord?`<h3>Add inventory <span class="badge">Coordinator</span></h3>
+  <p class="muted">Use this for cupboard pickups or cookies received from another troop. The quantities will be added to the cupboard total.</p>
+  <div class="grid2"><div><label>Date received</label><input type="date" id="rDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Source</label><select id="rSource"><option value="cupboard">Cupboard pickup</option><option value="troop-transfer">Transfer from another troop</option></select></div></div>
+  <label>Other troop number (for troop transfers)</label><input id="rTroop" placeholder="e.g. 1234">
+  <h3>Boxes received by type</h3>${addRows}
+  <label>Notes</label><input id="rNotes" placeholder="e.g. Irvine cupboard pickup or transfer details">
+  <button class="btn" onclick="addInventoryReceipt()">Add to troop inventory</button>
+  <details style="margin-top:18px"><summary class="small" style="cursor:pointer;font-weight:700">Correct cupboard totals manually</summary>${editRows}<button class="btn sec" onclick="saveTroopInv()">Save corrected totals</button></details>`:'<p class="small">Only coordinators can add or correct cupboard inventory.</p>'}
+  </div>
+  <div class="card"><h2>Inventory received history</h2><table><tr><th>Date</th><th>Source</th><th>Boxes received</th><th>Notes</th><th></th></tr>${receiptRows||'<tr><td colspan="5" class="muted">No cupboard pickups or incoming troop transfers recorded yet.</td></tr>'}</table></div>`;
 }
 function saveTroopInv(){
   state.cookies.forEach(c=>{state.troopInv[c.key]=+document.getElementById('ti_'+c.key).value||0});
   save(); render();
+}
+
+function addInventoryReceipt(){
+  if(!coord)return;
+  const date=document.getElementById('rDate').value, source=document.getElementById('rSource').value;
+  const troopNumber=document.getElementById('rTroop').value.trim(), notes=document.getElementById('rNotes').value.trim(), items={};
+  let total=0;
+  document.querySelectorAll('.receiptQty').forEach(el=>{const q=+el.value||0;if(q>0){items[el.dataset.key]=q;total+=q;}});
+  if(!date){alert('Choose the date the cookies were received.');return}
+  if(source==='troop-transfer'&&!troopNumber){alert('Enter the troop number the cookies came from.');return}
+  if(!total){alert('Enter at least one box received.');return}
+  state.inventoryReceipts=state.inventoryReceipts||[];
+  Object.entries(items).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)+q});
+  state.inventoryReceipts.push({id:uid(),date,source,troopNumber,notes,items});
+  save();render();
+}
+
+function delInventoryReceipt(id){
+  if(!coord)return;
+  const r=(state.inventoryReceipts||[]).find(x=>x.id===id);if(!r)return;
+  if(!confirm('Delete this inventory receipt? Its boxes will be removed from troop inventory.'))return;
+  Object.entries(r.items||{}).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)-q});
+  state.inventoryReceipts=state.inventoryReceipts.filter(x=>x.id!==id);
+  save();render();
 }
 
 function renderTransfers(){
