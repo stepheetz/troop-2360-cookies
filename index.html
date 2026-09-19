@@ -83,7 +83,7 @@ function uid(){return Math.random().toString(36).slice(2,10)}
 function defaultState(){
   let girls=GIRL_NAMES.map(n=>({id:uid(),name:n}));
   let girlInv={}; girls.forEach(g=>girlInv[g.id]={inv:{},paid:0});
-  return {girls,cookies:COOKIES,troopInv:{},girlInv,girlPins:{},transfers:[],transferRequests:[],inventoryReceipts:[],payments:[],booths:[],online:[],pw:'cookies2026'};
+  return {girls,cookies:COOKIES,troopInv:{},girlInv,girlPins:{},girlSales:[],transfers:[],transferRequests:[],inventoryReceipts:[],payments:[],booths:[],online:[],pw:'cookies2026'};
 }
 let state=null, coord=false, girlUserId=sessionStorage.getItem('girlUserId')||null, db=null, docRef=null, ready=false;
 function setStatus(cls,text){const el=document.getElementById('status'); el.className=cls; el.textContent=text;}
@@ -136,7 +136,7 @@ function doGirlLogin(){
   girlUserId=id;sessionStorage.setItem('girlUserId',id);closeGirlLogin();render();
 }
 
-const TABS=[['dash','Dashboard'],['mine','My Inventory'],['troop','Troop Inventory'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
+const TABS=[['dash','Dashboard'],['mine','My Records'],['troop','Troop Inventory'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
 let activeTab='dash', selectedGirlId=null, editingReceiptId=null;
 function setTab(t){activeTab=t;render();}
 function setMineGirl(id){selectedGirlId=id;render();}
@@ -149,53 +149,66 @@ function render(){
   girlBtn.textContent=signedGirl?'Signed in: '+signedGirl.name:'Family sign in';
   girlBtn.className=signedGirl?'on':'';
   const nav=document.getElementById('tabs');
-  nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${k==='mine'&&signedGirl?signedGirl.name+'\'s Records':l}</button>`).join('');
   document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,troop:renderTroop,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,coord:renderCoord}[activeTab])();
 }
 
 function totalGirlInv(){let t=zeroMap(); state.girls.forEach(g=>{let inv=invOf(state.girlInv[g.id]?.inv);state.cookies.forEach(c=>t[c.key]+=inv[c.key]||0)}); return t}
+function totalGirlSalesByType(){let t=zeroMap();(state.girlSales||[]).forEach(o=>state.cookies.forEach(c=>t[c.key]+=o.items?.[c.key]||0));return t}
 function totalBoothsByType(){let t=zeroMap(); state.booths.forEach(b=>state.cookies.forEach(c=>t[c.key]+=b.sales[c.key]||0)); return t}
 function totalOnlineByType(){let t=zeroMap(); state.online.forEach(o=>state.cookies.forEach(c=>t[c.key]+=o.items[c.key]||0)); return t}
 
 function renderDash(){
-  const girlInv=totalGirlInv(), booth=totalBoothsByType(), online=totalOnlineByType();
+  const girlInv=totalGirlInv(), girlSales=totalGirlSalesByType(), booth=totalBoothsByType(), online=totalOnlineByType();
   const boothCash=state.booths.reduce((s,b)=>s+(+b.cash||0),0), boothDig=state.booths.reduce((s,b)=>s+(+b.digital||0),0), boothDon=state.booths.reduce((s,b)=>s+(+b.donations||0),0);
   const onlineAmt=state.online.reduce((s,o)=>s+(+o.amount||0),0);
+  const customerPaid=(state.girlSales||[]).reduce((s,o)=>s+(+o.amountPaid||0),0);
   let rows=state.cookies.map(c=>{
-    const troopQ=state.troopInv[c.key]||0, girlQ=girlInv[c.key]||0, boothQ=booth[c.key]||0, onlineQ=online[c.key]||0;
-    return `<tr><td>${c.name}</td><td>${troopQ}</td><td>${girlQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
+    const troopQ=state.troopInv[c.key]||0, girlQ=girlInv[c.key]||0, directQ=girlSales[c.key]||0, boothQ=booth[c.key]||0, onlineQ=online[c.key]||0;
+    return `<tr><td>${c.name}</td><td>${troopQ}</td><td>${girlQ}</td><td>${directQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
   }).join('');
   return `<div class="card"><h2>Troop overview</h2>
-  <table><tr><th>Cookie</th><th>In troop cupboard</th><th>With girls</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
+  <table><tr><th>Cookie</th><th>In troop cupboard</th><th>With girls</th><th>Customer sales</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
   </div>
   <div class="card"><h2>Money raised so far</h2>
-  <table><tr><td>Booth cash</td><td>${money(boothCash)}</td></tr><tr><td>Booth digital/card</td><td>${money(boothDig)}</td></tr><tr><td>Booth donations</td><td>${money(boothDon)}</td></tr><tr><td>Online sales</td><td>${money(onlineAmt)}</td></tr>
-  <tr class="tot"><td>Total raised</td><td>${money(boothCash+boothDig+boothDon+onlineAmt)}</td></tr></table>
+  <table><tr><td>Customer payments collected</td><td>${money(customerPaid)}</td></tr><tr><td>Booth cash</td><td>${money(boothCash)}</td></tr><tr><td>Booth digital/card</td><td>${money(boothDig)}</td></tr><tr><td>Booth donations</td><td>${money(boothDon)}</td></tr><tr><td>Online sales</td><td>${money(onlineAmt)}</td></tr>
+  <tr class="tot"><td>Total raised</td><td>${money(customerPaid+boothCash+boothDig+boothDon+onlineAmt)}</td></tr></table>
   <p class="muted">"With girls" is what's currently checked out to a Girl Scout and not yet sold or transferred back. Booth and online totals are lifetime boxes sold in each channel.</p>
   </div>`;
 }
 
 function renderMine(){
-  if(!selectedGirlId||!state.girls.some(g=>g.id===selectedGirlId))selectedGirlId=state.girls[0]?.id||null;
-  let opts=state.girls.map(g=>`<option value="${g.id}" ${g.id===selectedGirlId?'selected':''}>${g.name}</option>`).join('');
-  return `<div class="card"><h2>My inventory</h2>
-  <label>Pick your name</label><select id="mineSel" onchange="setMineGirl(this.value)">${opts}</select>
-  ${mineDetail(selectedGirlId)}
-  </div>`;
+  if(!coord&&!girlUserId)return `<div class="card"><h2>My records</h2><p class="muted">Sign in with your Girl Scout's PIN to view and update only her inventory and customer sales.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
+  if(coord){if(!selectedGirlId||!state.girls.some(g=>g.id===selectedGirlId))selectedGirlId=state.girls[0]?.id||null;}
+  else selectedGirlId=girlUserId;
+  const gid=selectedGirlId,g=state.girls.find(x=>x.id===gid);if(!g)return '<div class="card"><p class="muted">No Girl Scout selected.</p></div>';
+  const selector=coord?`<label>Girl Scout</label><select id="mineSel" onchange="setMineGirl(this.value)">${state.girls.map(x=>`<option value="${x.id}" ${x.id===gid?'selected':''}>${x.name}</option>`).join('')}</select>`:'';
+  const rec=state.girlInv[gid]||{inv:{},paid:0},inv=invOf(rec.inv),boxes=state.cookies.reduce((s,c)=>s+(inv[c.key]||0),0),value=state.cookies.reduce((s,c)=>s+(inv[c.key]||0)*c.price,0);
+  const sales=(state.girlSales||[]).filter(s=>s.girlId===gid),soldBoxes=sales.reduce((s,o)=>s+state.cookies.reduce((x,c)=>x+(o.items?.[c.key]||0),0),0),salesDue=sales.reduce((s,o)=>s+(+o.amountDue||0),0),salesPaid=sales.reduce((s,o)=>s+(+o.amountPaid||0),0);
+  const onlineBoxes=state.online.filter(o=>o.girlId===gid).reduce((s,o)=>s+state.cookies.reduce((x,c)=>x+(o.items[c.key]||0),0),0),onlineAmt=state.online.filter(o=>o.girlId===gid).reduce((s,o)=>s+(+o.amount||0),0),booth=boothCreditForGirl(g);
+  const invRows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${inv[c.key]||0}</td></tr>`).join('');
+  const saleInputs=state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="personalSaleQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+  const saleRows=[...sales].reverse().map(o=>`<tr><td>${o.date}</td><td>${o.customer}</td><td>${o.contact||''}</td><td>${state.cookies.map(c=>o.items?.[c.key]?`${c.name} ${o.items[c.key]}`:null).filter(Boolean).join(', ')}</td><td>${money(o.amountDue)}</td><td>${money(o.amountPaid)}</td><td>${money((+o.amountDue||0)-(+o.amountPaid||0))}</td><td><button class="btn sec" onclick="addCustomerPayment('${o.id}')">Add payment</button><button class="btn danger" onclick="delGirlSale('${o.id}')">Delete</button></td></tr>`).join('');
+  return `<div class="card"><h2>${g.name}'s records</h2>${selector}<div class="grid2"><div><h3>Inventory on hand</h3><table><tr><th>Cookie</th><th>Boxes</th></tr>${invRows}<tr class="tot"><td>Total</td><td>${boxes} (${money(value)})</td></tr></table></div><div><h3>Sales summary</h3><table><tr><td>Customer boxes sold</td><td>${soldBoxes}</td></tr><tr><td>Customer sales</td><td>${money(salesDue)}</td></tr><tr><td>Customer payments collected</td><td>${money(salesPaid)}</td></tr><tr><td>Still owed by customers</td><td>${money(salesDue-salesPaid)}</td></tr><tr><td>Online sales</td><td>${onlineBoxes} (${money(onlineAmt)})</td></tr><tr><td>Booth credit</td><td>${booth.boxes.toFixed(1)} boxes (${money(booth.amount)})</td></tr><tr><td>Paid to troop</td><td>${money(rec.paid||0)}</td></tr></table></div></div></div>
+  <div class="card"><h2>Log a customer sale</h2><div class="grid2"><div><label>Date</label><input type="date" id="sDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Customer name</label><input id="sCustomer" placeholder="Customer name"></div></div><label>Contact information</label><input id="sContact" placeholder="Phone, email, address, or pickup notes"><h3>Cookies sold</h3>${saleInputs}<div class="grid2"><div><label>Amount customer already paid</label><input type="number" min="0" step="0.01" id="sPaid" placeholder="0.00"></div><div><label>Notes</label><input id="sNotes" placeholder="optional"></div></div><button class="btn" onclick="addGirlSale()">Save customer sale</button></div>
+  <div class="card"><h2>Customer sales log</h2><table><tr><th>Date</th><th>Customer</th><th>Contact</th><th>Cookies</th><th>Due</th><th>Paid</th><th>Owed</th><th></th></tr>${saleRows||'<tr><td colspan="8" class="muted">No customer sales logged yet.</td></tr>'}</table></div>`;
 }
-function mineDetail(gid){
-  if(!gid)return '<p class="muted">Add girls on the Coordinator tab first.</p>';
-  const g=state.girls.find(x=>x.id===gid); if(!g)return '';
-  const rec=state.girlInv[gid]||{inv:{},paid:0}; const inv=invOf(rec.inv);
-  const boxes=state.cookies.reduce((s,c)=>s+(inv[c.key]||0),0);
-  const boothCount=state.booths.filter(b=>b.girls.includes(g.name)).length;
-  const onlineBoxes=state.online.filter(o=>o.girlId===gid).reduce((s,o)=>s+state.cookies.reduce((x,c)=>x+(o.items[c.key]||0),0),0);
-  const onlineAmt=state.online.filter(o=>o.girlId===gid).reduce((s,o)=>s+(+o.amount||0),0);
-  const value=state.cookies.reduce((s,c)=>s+(inv[c.key]||0)*c.price,0);
-  let rows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${inv[c.key]||0}</td></tr>`).join('');
-  return `<h3 style="margin-bottom:2px">${g.name}</h3>
-  <table><tr><th>Cookie</th><th>Boxes on hand</th></tr>${rows}<tr class="tot"><td>Total boxes on hand</td><td>${boxes} (${money(value)})</td></tr></table>
-  <p class="muted">Worked ${boothCount} booth(s) &middot; ${onlineBoxes} boxes sold online (${money(onlineAmt)})${coord||girlUserId===gid?` &middot; Paid to troop: ${money(rec.paid||0)}`:''}</p>`;
+
+function addGirlSale(){
+  const girlId=coord?selectedGirlId:girlUserId,date=document.getElementById('sDate').value,customer=document.getElementById('sCustomer').value.trim(),contact=document.getElementById('sContact').value.trim(),amountPaid=+document.getElementById('sPaid').value||0,notes=document.getElementById('sNotes').value.trim(),items={};let boxes=0,amountDue=0;
+  if(!girlId||(!coord&&girlId!==girlUserId))return;if(!date||!customer){alert('Enter the sale date and customer name.');return}
+  document.querySelectorAll('.personalSaleQty').forEach(el=>{const q=+el.value||0;if(q>0){items[el.dataset.key]=q;boxes+=q;const c=state.cookies.find(x=>x.key===el.dataset.key);amountDue+=q*(c?.price||0);}});
+  if(!boxes){alert('Enter at least one box sold.');return}
+  const inv=invOf(state.girlInv[girlId]?.inv),short=state.cookies.filter(c=>(items[c.key]||0)>(inv[c.key]||0));if(short.length&&!confirm('This sale is more than the inventory currently shown for: '+short.map(c=>c.name).join(', ')+'. Save anyway?'))return;
+  state.girlInv[girlId]=state.girlInv[girlId]||{inv:{},paid:0};Object.entries(items).forEach(([k,q])=>state.girlInv[girlId].inv[k]=(state.girlInv[girlId].inv[k]||0)-q);
+  state.girlSales=state.girlSales||[];state.girlSales.push({id:uid(),girlId,date,customer,contact,items,amountDue,amountPaid,notes,createdByGirlId:coord?null:girlUserId});save();render();
+}
+function delGirlSale(id){
+  const sale=(state.girlSales||[]).find(x=>x.id===id);if(!sale)return;if(!coord&&sale.girlId!==girlUserId)return;if(!confirm('Delete this customer sale? Its boxes will be returned to the girl\'s inventory.'))return;
+  Object.entries(sale.items||{}).forEach(([k,q])=>state.girlInv[sale.girlId].inv[k]=(state.girlInv[sale.girlId].inv[k]||0)+q);state.girlSales=state.girlSales.filter(x=>x.id!==id);save();render();
+}
+function addCustomerPayment(id){
+  const sale=(state.girlSales||[]).find(x=>x.id===id);if(!sale)return;if(!coord&&sale.girlId!==girlUserId)return;const entered=prompt('Additional payment received from '+sale.customer+':','0.00');if(entered===null)return;const amount=+entered;if(!amount||amount<=0){alert('Enter an amount greater than $0.');return}sale.amountPaid=(+sale.amountPaid||0)+amount;save();render();
 }
 
 function renderTroop(){
@@ -377,16 +390,21 @@ function delPayment(id){
   state.payments=state.payments.filter(x=>x.id!==id);save();render();
 }
 
+function boothCreditForGirl(girl){
+  return state.booths.reduce((t,b)=>{if(!b.girls?.includes(girl.name)||!b.girls.length)return t;const n=b.girls.length;t.booths++;t.boxes+=state.cookies.reduce((s,c)=>s+(+b.sales?.[c.key]||0),0)/n;t.amount+=((+b.cash||0)+(+b.digital||0)+(+b.donations||0))/n;return t;},{booths:0,boxes:0,amount:0});
+}
 function renderBooths(){
   let girlChks=state.girls.map(g=>`<label class="chk"><input type="checkbox" value="${g.name}" class="boothGirlChk"> ${g.name}</label>`).join('');
   let cookieInputs=state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="boothCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+  let creditRows=state.girls.map(g=>{const x=boothCreditForGirl(g);return `<tr><td>${g.name}</td><td>${x.booths}</td><td>${x.boxes.toFixed(1)}</td><td>${money(x.amount)}</td></tr>`}).join('');
   let list=[...state.booths].reverse().map(b=>`<div class="card"><b>${b.date} &middot; ${b.location}</b> <span class="small">${b.time||''}</span><br>
     <span class="small">Girls: ${b.girls.join(', ')||'—'}</span><br>
     <span class="small">Sold: ${state.cookies.map(c=>b.sales[c.key]?`${c.name} ${b.sales[c.key]}`:null).filter(Boolean).join(', ')||'none entered'}</span><br>
-    <span class="small">Cash ${money(b.cash)} &middot; Digital/card ${money(b.digital)} &middot; Donations ${money(b.donations)}${b.notes?' &middot; '+b.notes:''}</span>
+    <span class="small">Cash ${money(b.cash)} &middot; Digital/card ${money(b.digital)} &middot; Donations ${money(b.donations)}${b.notes?' &middot; '+b.notes:''}</span><br>
+    <span class="small">Credit per participating girl: ${(state.cookies.reduce((s,c)=>s+(+b.sales?.[c.key]||0),0)/(b.girls.length||1)).toFixed(1)} boxes &middot; ${money(((+b.cash||0)+(+b.digital||0)+(+b.donations||0))/(b.girls.length||1))}</span>
     ${coord?`<div class="row-actions" style="margin-top:6px"><button class="btn danger" onclick="delBooth('${b.id}')">Delete</button></div>`:''}
   </div>`).join('');
-  return `<div class="card"><h2>Log a booth sale</h2>
+  return `<div class="card"><h2>Cumulative booth credit by girl</h2><p class="muted">Each booth's boxes and collected dollars are divided evenly among all participating girls listed for that booth.</p><table><tr><th>Girl Scout</th><th>Booths</th><th>Credited boxes</th><th>Credited sales</th></tr>${creditRows}</table></div><div class="card"><h2>Log a booth sale</h2>
   <p class="muted">Whoever ran the booth fills this in right after — no login needed.</p>
   <div class="grid2"><div><label>Date</label><input type="date" id="bDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Time</label><input id="bTime" placeholder="e.g. 1:30-3:30pm"></div></div>
   <label>Location</label><input id="bLoc" placeholder="e.g. Stater Bros - Kensington">
@@ -403,6 +421,7 @@ function addBooth(){
   const date=document.getElementById('bDate').value, time=document.getElementById('bTime').value, location=document.getElementById('bLoc').value;
   if(!location){alert('Enter a booth location.');return}
   const girls=[...document.querySelectorAll('.boothGirlChk:checked')].map(x=>x.value);
+  if(!girls.length){alert('Select at least one participating Girl Scout so the booth totals can be divided correctly.');return}
   const sales={};
   document.querySelectorAll('.boothCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){sales[el.dataset.key]=q; state.troopInv[el.dataset.key]=(state.troopInv[el.dataset.key]||0)-q;}});
   const cash=+document.getElementById('bCash').value||0, digital=+document.getElementById('bDigital').value||0, donations=+document.getElementById('bDon').value||0, notes=document.getElementById('bNotes').value;
