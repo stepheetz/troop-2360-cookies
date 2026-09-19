@@ -12,8 +12,10 @@ body{margin:0;background-color:var(--bg);background-image:radial-gradient(circle
 header{background:linear-gradient(110deg,#00834f 0%,#00a56a 55%,#6f3f8f 100%);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;box-shadow:0 3px 12px rgba(44,36,22,.18)}
 header h1{margin:0;font-size:1.25rem;font-weight:600}
 header .sub{font-family:Verdana,sans-serif;font-size:.75rem;opacity:.85}
-#coordBtn{font-family:Verdana,sans-serif;font-size:.8rem;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
+#coordBtn,#girlBtn{font-family:Verdana,sans-serif;font-size:.8rem;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
 #coordBtn.on{background:var(--accent);border-color:var(--accent);color:#2c2416}
+.header-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+#girlBtn.on{background:#fff;color:#17613f;border-color:#fff}
 nav{display:flex;gap:6px;flex-wrap:wrap;padding:9px 12px;background:rgba(255,255,255,.91);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
 nav button{font-family:Verdana,sans-serif;font-size:.8rem;font-weight:700;padding:8px 13px;border:1px solid #b8cbbf;background:#eef8f1;color:#175f3d;border-radius:20px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 nav button:hover{background:#dff2e5;border-color:#78a98b}
@@ -49,7 +51,7 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 <body>
 <header>
   <div><h1>🍪 Troop 2360 Cookie Tracker</h1><div class="sub">2026 Cookie Season <span id="status">Connecting…</span></div></div>
-  <button id="coordBtn" onclick="toggleCoord()">Coordinator: Locked</button>
+  <div class="header-actions"><button id="girlBtn" onclick="toggleGirlLogin()">Family sign in</button><button id="coordBtn" onclick="toggleCoord()">Coordinator: Locked</button></div>
 </header>
 <nav id="tabs"></nav>
 <main id="app"></main>
@@ -81,9 +83,9 @@ function uid(){return Math.random().toString(36).slice(2,10)}
 function defaultState(){
   let girls=GIRL_NAMES.map(n=>({id:uid(),name:n}));
   let girlInv={}; girls.forEach(g=>girlInv[g.id]={inv:{},paid:0});
-  return {girls,cookies:COOKIES,troopInv:{},girlInv,transfers:[],inventoryReceipts:[],booths:[],online:[],pw:'cookies2026'};
+  return {girls,cookies:COOKIES,troopInv:{},girlInv,girlPins:{},transfers:[],transferRequests:[],inventoryReceipts:[],payments:[],booths:[],online:[],pw:'cookies2026'};
 }
-let state=null, coord=false, db=null, docRef=null, ready=false;
+let state=null, coord=false, girlUserId=sessionStorage.getItem('girlUserId')||null, db=null, docRef=null, ready=false;
 function setStatus(cls,text){const el=document.getElementById('status'); el.className=cls; el.textContent=text;}
 function save(){
   if(!docRef)return;
@@ -103,6 +105,7 @@ function startApp(){
   docRef.onSnapshot(snap=>{
     if(snap.exists){state=Object.assign(defaultState(),snap.data()); if(!state.cookies||!state.cookies.length)state.cookies=COOKIES;}
     else{state=defaultState(); docRef.set(state);}
+    if(girlUserId&&!state.girls.some(g=>g.id===girlUserId)){girlUserId=null;sessionStorage.removeItem('girlUserId');}
     ready=true; setStatus('live','Live'); render();
   },err=>{setStatus('err','Connection error — check your Firebase config & rules'); console.error(err);});
 }
@@ -119,8 +122,22 @@ function toggleCoord(){
   else alert('Incorrect password.');
 }
 
-const TABS=[['dash','Dashboard'],['mine','My Inventory'],['troop','Troop Inventory'],['transfers','Transfers'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
-let activeTab='dash', selectedGirlId=null;
+function toggleGirlLogin(){
+  if(girlUserId){girlUserId=null;sessionStorage.removeItem('girlUserId');render();return}
+  const opts=state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  document.body.insertAdjacentHTML('beforeend',`<div class="overlay" id="girlLogin"><div class="modal"><h2>Family sign in</h2><label>Girl Scout</label><select id="loginGirl">${opts}</select><label>PIN</label><input id="loginPin" type="password" inputmode="numeric" maxlength="8" placeholder="Enter PIN" onkeydown="if(event.key==='Enter')doGirlLogin()"><button class="btn" onclick="doGirlLogin()">Sign in</button> <button class="btn sec" onclick="closeGirlLogin()">Cancel</button><p class="muted">Ask the cookie coordinator if you need your PIN.</p></div></div>`);
+  setTimeout(()=>document.getElementById('loginPin')?.focus(),0);
+}
+function closeGirlLogin(){document.getElementById('girlLogin')?.remove()}
+function doGirlLogin(){
+  const id=document.getElementById('loginGirl').value, pin=document.getElementById('loginPin').value.trim();
+  if(!state.girlPins?.[id]){alert('A PIN has not been assigned yet. Ask the coordinator to create one.');return}
+  if(pin!==String(state.girlPins[id])){alert('Incorrect PIN.');return}
+  girlUserId=id;sessionStorage.setItem('girlUserId',id);closeGirlLogin();render();
+}
+
+const TABS=[['dash','Dashboard'],['mine','My Inventory'],['troop','Troop Inventory'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
+let activeTab='dash', selectedGirlId=null, editingReceiptId=null;
 function setTab(t){activeTab=t;render();}
 function setMineGirl(id){selectedGirlId=id;render();}
 
@@ -128,9 +145,12 @@ function render(){
   if(!ready)return;
   document.getElementById('coordBtn').textContent='Coordinator: '+(coord?'Unlocked':'Locked');
   document.getElementById('coordBtn').className=coord?'on':'';
+  const girlBtn=document.getElementById('girlBtn'), signedGirl=state.girls.find(g=>g.id===girlUserId);
+  girlBtn.textContent=signedGirl?'Signed in: '+signedGirl.name:'Family sign in';
+  girlBtn.className=signedGirl?'on':'';
   const nav=document.getElementById('tabs');
   nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('');
-  document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,troop:renderTroop,transfers:renderTransfers,booths:renderBooths,online:renderOnline,coord:renderCoord}[activeTab])();
+  document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,troop:renderTroop,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,coord:renderCoord}[activeTab])();
 }
 
 function totalGirlInv(){let t=zeroMap(); state.girls.forEach(g=>{let inv=invOf(state.girlInv[g.id]?.inv);state.cookies.forEach(c=>t[c.key]+=inv[c.key]||0)}); return t}
@@ -175,24 +195,25 @@ function mineDetail(gid){
   let rows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${inv[c.key]||0}</td></tr>`).join('');
   return `<h3 style="margin-bottom:2px">${g.name}</h3>
   <table><tr><th>Cookie</th><th>Boxes on hand</th></tr>${rows}<tr class="tot"><td>Total boxes on hand</td><td>${boxes} (${money(value)})</td></tr></table>
-  <p class="muted">Worked ${boothCount} booth(s) &middot; ${onlineBoxes} boxes sold online (${money(onlineAmt)})${coord?` &middot; Paid so far: ${money(rec.paid||0)}`:''}</p>`;
+  <p class="muted">Worked ${boothCount} booth(s) &middot; ${onlineBoxes} boxes sold online (${money(onlineAmt)})${coord||girlUserId===gid?` &middot; Paid to troop: ${money(rec.paid||0)}`:''}</p>`;
 }
 
 function renderTroop(){
   let rows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${state.troopInv[c.key]||0}</td><td>${money(c.price)}</td></tr>`).join('');
   let editRows= coord? state.cookies.map(c=>`<div class="grid2"><label>${c.name} qty</label><input type="number" id="ti_${c.key}" value="${state.troopInv[c.key]||0}"></div>`).join('') :'';
-  let addRows=coord?state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="receiptQty" data-key="${c.key}" placeholder="0"></div>`).join(''):'';
-  let receiptRows=[...(state.inventoryReceipts||[])].reverse().map(r=>`<tr><td>${r.date}</td><td>${r.source==='troop-transfer'?'Transfer from Troop '+(r.troopNumber||'—'):'Cupboard pickup'}</td><td>${state.cookies.map(c=>r.items[c.key]?`${c.name} ${r.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${r.notes||''}</td><td class="row-actions">${coord?`<button class="btn danger" onclick="delInventoryReceipt('${r.id}')">Delete</button>`:''}</td></tr>`).join('');
+  const editing=(state.inventoryReceipts||[]).find(r=>r.id===editingReceiptId)||null;
+  let addRows=coord?state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="receiptQty" data-key="${c.key}" value="${editing?.items?.[c.key]||''}" placeholder="0"></div>`).join(''):'';
+  let receiptRows=[...(state.inventoryReceipts||[])].reverse().map(r=>`<tr><td>${r.date}</td><td>${r.source==='troop-transfer'?'Transfer from Troop '+(r.troopNumber||'—'):'Cupboard pickup'}</td><td>${state.cookies.map(c=>r.items[c.key]?`${c.name} ${r.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${r.notes||''}</td><td class="row-actions">${coord?`<button class="btn sec" onclick="editInventoryReceipt('${r.id}')">Edit</button><button class="btn danger" onclick="delInventoryReceipt('${r.id}')">Delete</button>`:''}</td></tr>`).join('');
   return `<div class="card"><h2>Troop cupboard inventory</h2>
   <table><tr><th>Cookie</th><th>Boxes on hand</th><th>Price/box</th></tr>${rows}</table>
   <p class="muted">This is stock the troop is holding that hasn't been checked out to a Girl Scout yet (e.g. cupboard pickups, initial order).</p>
-  ${coord?`<h3>Add inventory <span class="badge">Coordinator</span></h3>
-  <p class="muted">Use this for cupboard pickups or cookies received from another troop. The quantities will be added to the cupboard total.</p>
-  <div class="grid2"><div><label>Date received</label><input type="date" id="rDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Source</label><select id="rSource"><option value="cupboard">Cupboard pickup</option><option value="troop-transfer">Transfer from another troop</option></select></div></div>
-  <label>Other troop number (for troop transfers)</label><input id="rTroop" placeholder="e.g. 1234">
+  ${coord?`<h3>${editing?'Edit inventory entry':'Add inventory'} <span class="badge">Coordinator</span></h3>
+  <p class="muted">${editing?'Saving changes will adjust the cupboard totals by the difference.':'Use this for cupboard pickups or cookies received from another troop. The quantities will be added to the cupboard total.'}</p>
+  <div class="grid2"><div><label>Date received</label><input type="date" id="rDate" value="${editing?.date||new Date().toISOString().slice(0,10)}"></div><div><label>Source</label><select id="rSource"><option value="cupboard" ${editing?.source==='cupboard'?'selected':''}>Cupboard pickup</option><option value="troop-transfer" ${editing?.source==='troop-transfer'?'selected':''}>Transfer from another troop</option></select></div></div>
+  <label>Other troop number (for troop transfers)</label><input id="rTroop" value="${editing?.troopNumber||''}" placeholder="e.g. 1234">
   <h3>Boxes received by type</h3>${addRows}
-  <label>Notes</label><input id="rNotes" placeholder="e.g. Irvine cupboard pickup or transfer details">
-  <button class="btn" onclick="addInventoryReceipt()">Add to troop inventory</button>
+  <label>Notes</label><input id="rNotes" value="${editing?.notes||''}" placeholder="e.g. Irvine cupboard pickup or transfer details">
+  <button class="btn" onclick="addInventoryReceipt()">${editing?'Save entry changes':'Add to troop inventory'}</button>${editing?' <button class="btn sec" onclick="cancelReceiptEdit()">Cancel</button>':''}
   <details style="margin-top:18px"><summary class="small" style="cursor:pointer;font-weight:700">Correct cupboard totals manually</summary>${editRows}<button class="btn sec" onclick="saveTroopInv()">Save corrected totals</button></details>`:'<p class="small">Only coordinators can add or correct cupboard inventory.</p>'}
   </div>
   <div class="card"><h2>Inventory received history</h2><table><tr><th>Date</th><th>Source</th><th>Boxes received</th><th>Notes</th><th></th></tr>${receiptRows||'<tr><td colspan="5" class="muted">No cupboard pickups or incoming troop transfers recorded yet.</td></tr>'}</table></div>`;
@@ -212,10 +233,19 @@ function addInventoryReceipt(){
   if(source==='troop-transfer'&&!troopNumber){alert('Enter the troop number the cookies came from.');return}
   if(!total){alert('Enter at least one box received.');return}
   state.inventoryReceipts=state.inventoryReceipts||[];
-  Object.entries(items).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)+q});
-  state.inventoryReceipts.push({id:uid(),date,source,troopNumber,notes,items});
+  const existing=state.inventoryReceipts.find(r=>r.id===editingReceiptId);
+  if(existing){
+    state.cookies.forEach(c=>{state.troopInv[c.key]=(state.troopInv[c.key]||0)+(items[c.key]||0)-(existing.items?.[c.key]||0)});
+    Object.assign(existing,{date,source,troopNumber,notes,items});editingReceiptId=null;
+  }else{
+    Object.entries(items).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)+q});
+    state.inventoryReceipts.push({id:uid(),date,source,troopNumber,notes,items});
+  }
   save();render();
 }
+
+function editInventoryReceipt(id){if(!coord)return;editingReceiptId=id;render();window.scrollTo({top:0,behavior:'smooth'});}
+function cancelReceiptEdit(){editingReceiptId=null;render();}
 
 function delInventoryReceipt(id){
   if(!coord)return;
@@ -223,23 +253,25 @@ function delInventoryReceipt(id){
   if(!confirm('Delete this inventory receipt? Its boxes will be removed from troop inventory.'))return;
   Object.entries(r.items||{}).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)-q});
   state.inventoryReceipts=state.inventoryReceipts.filter(x=>x.id!==id);
+  if(editingReceiptId===id)editingReceiptId=null;
   save();render();
 }
 
 function renderTransfers(){
-  let entityOpts=['<option value="TROOP">Troop cupboard</option>']+state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const permittedGirls=state.girls;
+  let entityOpts=(coord?'<option value="TROOP">Troop cupboard</option>':'')+permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   let cookieOpts=state.cookies.map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
   let list=[...state.transfers].reverse().map(t=>`<tr><td>${t.date}</td><td>${girlName(t.from)}&rarr;${girlName(t.to)}</td><td>${t.qty} ${state.cookies.find(c=>c.key===t.cookie)?.name||''}</td><td>${t.note||''}</td>
-    <td class="row-actions">${coord?`<button class="btn danger" onclick="delTransfer('${t.id}')">Delete</button>`:''}</td></tr>`).join('');
-  return `<div class="card"><h2>Record a transfer</h2>
-  <p class="muted">Move boxes between the troop cupboard and any girl, or between two girls.</p>
+    <td class="row-actions">${coord||t.createdByGirlId===girlUserId?`<button class="btn danger" onclick="delTransfer('${t.id}')">Delete</button>`:''}</td></tr>`).join('');
+  const form=coord||girlUserId?`<div class="card"><h2>Record a transfer</h2>
+  <p class="muted">${coord?'Move boxes between the troop cupboard and any girl, or between two girls.':'Transfer between your Girl Scout and another girl. Transfers involving the troop cupboard require the coordinator.'}</p>
   <div class="grid2"><div><label>From</label><select id="tFrom">${entityOpts}</select></div><div><label>To</label><select id="tTo">${entityOpts}</select></div></div>
   <div class="grid2"><div><label>Cookie</label><select id="tCookie">${cookieOpts}</select></div><div><label>Boxes</label><input type="number" id="tQty" min="0"></div></div>
   <label>Date</label><input type="date" id="tDate" value="${new Date().toISOString().slice(0,10)}">
   <label>Note (optional)</label><input id="tNote" placeholder="e.g. cupboard pickup, girl-to-girl swap">
   <button class="btn" onclick="addTransfer()">Save transfer</button>
-  </div>
-  <div class="card"><h2>Transfer history</h2><table><tr><th>Date</th><th>Move</th><th>Boxes</th><th>Note</th><th></th></tr>${list||'<tr><td colspan=5 class="muted">No transfers yet.</td></tr>'}</table></div>`;
+  </div>`:`<div class="card"><h2>Record a transfer</h2><p class="muted">Sign in with either participating Girl Scout's PIN to record a girl-to-girl transfer.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
+  return `${form}<div class="card"><h2>Transfer history</h2><table><tr><th>Date</th><th>Move</th><th>Boxes</th><th>Note</th><th></th></tr>${list||'<tr><td colspan=5 class="muted">No transfers yet.</td></tr>'}</table></div>`;
 }
 function addTransfer(){
   const from=document.getElementById('tFrom').value, to=document.getElementById('tTo').value;
@@ -247,21 +279,102 @@ function addTransfer(){
   const date=document.getElementById('tDate').value, note=document.getElementById('tNote').value;
   if(!qty||qty<=0){alert('Enter a number of boxes greater than 0.');return}
   if(from===to){alert('From and To must be different.');return}
+  if(!coord&&(from==='TROOP'||to==='TROOP')){alert('Only the coordinator can record troop cupboard transfers.');return}
+  if(!coord&&(!girlUserId||(from!==girlUserId&&to!==girlUserId))){alert('One side of the transfer must be your signed-in Girl Scout.');return}
   if(from==='TROOP'){state.troopInv[cookie]=(state.troopInv[cookie]||0)-qty}
   else{state.girlInv[from]=state.girlInv[from]||{inv:{},paid:0}; state.girlInv[from].inv[cookie]=(state.girlInv[from].inv[cookie]||0)-qty}
   if(to==='TROOP'){state.troopInv[cookie]=(state.troopInv[cookie]||0)+qty}
   else{state.girlInv[to]=state.girlInv[to]||{inv:{},paid:0}; state.girlInv[to].inv[cookie]=(state.girlInv[to].inv[cookie]||0)+qty}
-  state.transfers.push({id:uid(),date,from,to,cookie,qty,note});
+  state.transfers.push({id:uid(),date,from,to,cookie,qty,note,createdByGirlId:coord?null:girlUserId});
   save(); render();
 }
 function delTransfer(id){
-  if(!coord)return;
   const t=state.transfers.find(x=>x.id===id); if(!t)return;
+  if(!coord&&t.createdByGirlId!==girlUserId)return;
   if(!confirm('Delete this transfer? This will also undo its inventory change.'))return;
   if(t.from==='TROOP'){state.troopInv[t.cookie]=(state.troopInv[t.cookie]||0)+t.qty} else if(state.girlInv[t.from]){state.girlInv[t.from].inv[t.cookie]=(state.girlInv[t.from].inv[t.cookie]||0)+t.qty}
   if(t.to==='TROOP'){state.troopInv[t.cookie]=(state.troopInv[t.cookie]||0)-t.qty} else if(state.girlInv[t.to]){state.girlInv[t.to].inv[t.cookie]=(state.girlInv[t.to].inv[t.cookie]||0)-t.qty}
+  if(t.requestId&&t.fulfillmentId){const req=(state.transferRequests||[]).find(r=>r.id===t.requestId);if(req)req.fulfillments=(req.fulfillments||[]).filter(f=>f.id!==t.fulfillmentId);}
   state.transfers=state.transfers.filter(x=>x.id!==id);
   save(); render();
+}
+
+function requestRemaining(r){return Math.max(0,(+r.qty||0)-(r.fulfillments||[]).reduce((s,f)=>s+(+f.qty||0),0))}
+function renderRequests(){
+  const cookieOpts=state.cookies.map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
+  const girlOpts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const createForm=coord||girlUserId?`<div class="card"><h2>Post a transfer request</h2><p class="muted">Ask for boxes you need, or offer boxes you can give. Other families can fulfill all or part of the request.</p>
+    <label>Girl Scout</label><select id="qGirl">${girlOpts}</select>
+    <div class="grid2"><div><label>Request type</label><select id="qType"><option value="need">I need / want to take</option><option value="give">I can give</option></select></div><div><label>Date</label><input type="date" id="qDate" value="${new Date().toISOString().slice(0,10)}"></div></div>
+    <div class="grid2"><div><label>Cookie</label><select id="qCookie">${cookieOpts}</select></div><div><label>Total boxes</label><input type="number" min="1" id="qQty"></div></div>
+    <label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p class="muted">Sign in with your Girl Scout's PIN to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
+  const cards=[...(state.transferRequests||[])].reverse().map(r=>{
+    const remaining=requestRemaining(r), cookie=state.cookies.find(c=>c.key===r.cookie)?.name||r.cookie;
+    const actorOpts=coord?'<option value="TROOP">Troop cupboard</option>'+state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join(''):girlUserId?`<option value="${girlUserId}">${girlName(girlUserId)}</option>`:'';
+    const history=(r.fulfillments||[]).map(f=>`${girlName(f.actorId)} ${r.type==='need'?'gave':'received'} ${f.qty}`).join(' · ');
+    const canDelete=(coord||r.requesterId===girlUserId)&&!(r.fulfillments||[]).length;
+    const fulfill=(coord||girlUserId)&&remaining>0?`<div class="grid2"><div><label>${r.type==='need'?'Fulfill from':'Give to'}</label><select id="qActor_${r.id}">${actorOpts}</select></div><div><label>Boxes to fulfill</label><input type="number" min="1" max="${remaining}" id="qFill_${r.id}" placeholder="up to ${remaining}"></div></div><button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill request</button>`:'';
+    return `<div class="card"><h2>${r.type==='need'?'🔎 Needs':'🎁 Can give'}: ${cookie}</h2><p><b>${girlName(r.requesterId)}</b> requested ${r.qty} box(es) on ${r.date}. <b>${remaining} remaining.</b></p>${r.note?`<p class="small">${r.note}</p>`:''}${history?`<p class="muted">Fulfilled so far: ${history}</p>`:''}${fulfill}${canDelete?` <button class="btn danger" onclick="delRequest('${r.id}')">Delete request</button>`:''}${remaining===0?'<span class="badge">Fulfilled</span>':''}</div>`;
+  }).join('');
+  return `${createForm}<h2>Open and fulfilled requests</h2>${cards||'<div class="card"><p class="muted">No transfer requests yet.</p></div>'}`;
+}
+function addRequest(){
+  const requesterId=document.getElementById('qGirl').value,type=document.getElementById('qType').value,date=document.getElementById('qDate').value,cookie=document.getElementById('qCookie').value,qty=+document.getElementById('qQty').value,note=document.getElementById('qNote').value.trim();
+  if(!coord&&requesterId!==girlUserId)return;
+  if(!qty||qty<1){alert('Enter at least one box.');return}
+  state.transferRequests=state.transferRequests||[];state.transferRequests.push({id:uid(),requesterId,type,date,cookie,qty,note,fulfillments:[]});save();render();
+}
+function fulfillRequest(id){
+  const r=(state.transferRequests||[]).find(x=>x.id===id);if(!r)return;
+  const actorId=document.getElementById('qActor_'+id).value,qty=+document.getElementById('qFill_'+id).value,remaining=requestRemaining(r);
+  if(!qty||qty<1||qty>remaining){alert('Enter a quantity from 1 to '+remaining+'.');return}
+  if(!coord&&actorId!==girlUserId)return;
+  if(!coord&&actorId==='TROOP'){alert('Only the coordinator can use troop cupboard inventory.');return}
+  const from=r.type==='need'?actorId:r.requesterId,to=r.type==='need'?r.requesterId:actorId;
+  if(from===to){alert('Choose a different Girl Scout to fulfill this request.');return}
+  const available=from==='TROOP'?(state.troopInv[r.cookie]||0):(state.girlInv[from]?.inv?.[r.cookie]||0);
+  if(available<qty&&!confirm(girlName(from)+' currently shows only '+available+' box(es). Record this transfer anyway?'))return;
+  if(from==='TROOP')state.troopInv[r.cookie]=(state.troopInv[r.cookie]||0)-qty;else{state.girlInv[from]=state.girlInv[from]||{inv:{},paid:0};state.girlInv[from].inv[r.cookie]=(state.girlInv[from].inv[r.cookie]||0)-qty}
+  if(to==='TROOP')state.troopInv[r.cookie]=(state.troopInv[r.cookie]||0)+qty;else{state.girlInv[to]=state.girlInv[to]||{inv:{},paid:0};state.girlInv[to].inv[r.cookie]=(state.girlInv[to].inv[r.cookie]||0)+qty}
+  const fulfillmentId=uid(),date=new Date().toISOString().slice(0,10);r.fulfillments=r.fulfillments||[];r.fulfillments.push({id:fulfillmentId,actorId,qty,date});
+  state.transfers.push({id:uid(),date,from,to,cookie:r.cookie,qty,note:'Transfer request fulfillment',createdByGirlId:coord?null:girlUserId,requestId:r.id,fulfillmentId});save();render();
+}
+function delRequest(id){
+  const r=(state.transferRequests||[]).find(x=>x.id===id);if(!r)return;
+  if(!coord&&r.requesterId!==girlUserId)return;
+  if((r.fulfillments||[]).length){alert('A partially fulfilled request cannot be deleted. Delete its fulfillment transfers first.');return}
+  if(!confirm('Delete this transfer request?'))return;state.transferRequests=state.transferRequests.filter(x=>x.id!==id);save();render();
+}
+
+function paymentMethodLabel(method){return method==='cash'?'Cash':method==='zelle-venmo'?'Zelle/Venmo':'Other'}
+function renderPayments(){
+  const permittedGirls=coord?state.girls:state.girls.filter(g=>g.id===girlUserId);
+  const girlOpts=permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const form=coord||girlUserId?`<div class="card"><h2>Record a payment to the troop</h2><p class="muted">Log money a family has turned in to the troop.</p>
+    <label>Girl Scout</label><select id="pGirl">${girlOpts}</select>
+    <div class="grid2"><div><label>Date paid</label><input type="date" id="pDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Amount</label><input type="number" min="0.01" step="0.01" id="pAmount" placeholder="0.00"></div></div>
+    <label>Form of payment</label><select id="pMethod"><option value="cash">Cash</option><option value="zelle-venmo">Zelle/Venmo</option><option value="other">Other</option></select>
+    <label>Notes</label><input id="pNotes" placeholder="e.g. Venmo confirmation or other payment details">
+    <button class="btn" onclick="addPayment()">Add payment</button></div>`:`<div class="card"><h2>Record a payment to the troop</h2><p class="muted">Sign in with your Girl Scout's PIN to record her payment.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
+  const visible=coord?(state.payments||[]):(state.payments||[]).filter(p=>p.girlId===girlUserId);
+  const rows=[...visible].reverse().map(p=>`<tr><td>${p.date}</td><td>${girlName(p.girlId)}</td><td>${money(p.amount)}</td><td>${paymentMethodLabel(p.method)}</td><td>${p.notes||''}</td><td>${coord||p.createdByGirlId===girlUserId?`<button class="btn danger" onclick="delPayment('${p.id}')">Delete</button>`:''}</td></tr>`).join('');
+  const totals=permittedGirls.map(g=>`<tr><td>${g.name}</td><td>${money(state.girlInv[g.id]?.paid||0)}</td></tr>`).join('');
+  return `${form}<div class="card"><h2>Total paid to troop</h2><table><tr><th>Girl Scout</th><th>Total paid</th></tr>${totals||'<tr><td colspan="2" class="muted">Sign in to view your total.</td></tr>'}</table></div><div class="card"><h2>Payment history</h2><table><tr><th>Date</th><th>Girl</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr>${rows||'<tr><td colspan="6" class="muted">No payments logged yet.</td></tr>'}</table></div>`;
+}
+function addPayment(){
+  const girlId=document.getElementById('pGirl').value,date=document.getElementById('pDate').value,amount=+document.getElementById('pAmount').value,method=document.getElementById('pMethod').value,notes=document.getElementById('pNotes').value.trim();
+  if(!coord&&girlId!==girlUserId)return;
+  if(!date){alert('Choose the payment date.');return}
+  if(!amount||amount<=0){alert('Enter a payment amount greater than $0.');return}
+  state.girlInv[girlId]=state.girlInv[girlId]||{inv:{},paid:0};state.girlInv[girlId].paid=(+state.girlInv[girlId].paid||0)+amount;
+  state.payments=state.payments||[];state.payments.push({id:uid(),girlId,date,amount,method,notes,createdByGirlId:coord?null:girlUserId});save();render();
+}
+function delPayment(id){
+  const p=(state.payments||[]).find(x=>x.id===id);if(!p)return;
+  if(!coord&&p.createdByGirlId!==girlUserId)return;
+  if(!confirm('Delete this payment? It will be removed from the girl\'s total paid.'))return;
+  if(state.girlInv[p.girlId])state.girlInv[p.girlId].paid=Math.max(0,(+state.girlInv[p.girlId].paid||0)-(+p.amount||0));
+  state.payments=state.payments.filter(x=>x.id!==id);save();render();
 }
 
 function renderBooths(){
@@ -306,11 +419,12 @@ function delBooth(id){
 }
 
 function renderOnline(){
-  let girlOpts=state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const permittedGirls=coord?state.girls:state.girls.filter(g=>g.id===girlUserId);
+  let girlOpts=permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   let cookieInputs=state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="onlineCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
   let list=[...state.online].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td>${state.cookies.map(c=>o.items[c.key]?`${c.name} ${o.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${money(o.amount)}</td><td>${o.delivered?'Girl delivery':'Shipped'}</td>
-   <td>${coord?`<button class="btn danger" onclick="delOnline('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
-  return `<div class="card"><h2>Log a Digital Cookie / online order</h2>
+   <td>${coord||o.createdByGirlId===girlUserId?`<button class="btn danger" onclick="delOnline('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
+  const form=coord||girlUserId?`<div class="card"><h2>Log a Digital Cookie / online order</h2>
   <label>Girl Scout</label><select id="oGirl">${girlOpts}</select>
   <label>Date</label><input type="date" id="oDate" value="${new Date().toISOString().slice(0,10)}">
   <h3>Boxes (if known)</h3>${cookieInputs}
@@ -318,20 +432,21 @@ function renderOnline(){
   <label class="chk"><input type="checkbox" id="oDelivered"> I'm hand-delivering this order (subtract from my on-hand inventory)</label>
   <label>Note</label><input id="oNote" placeholder="optional">
   <button class="btn" onclick="addOnline()">Save online sale</button>
-  </div>
-  <div class="card"><h2>Online sales log</h2><table><tr><th>Date</th><th>Girl</th><th>Boxes</th><th>Amount</th><th>Type</th><th></th></tr>${list||'<tr><td colspan=6 class="muted">None logged yet.</td></tr>'}</table></div>`;
+  </div>`:`<div class="card"><h2>Log a Digital Cookie / online order</h2><p class="muted">Sign in with your Girl Scout's PIN to add her online sales.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
+  return `${form}<div class="card"><h2>Online sales log</h2><table><tr><th>Date</th><th>Girl</th><th>Boxes</th><th>Amount</th><th>Type</th><th></th></tr>${list||'<tr><td colspan=6 class="muted">None logged yet.</td></tr>'}</table></div>`;
 }
 function addOnline(){
   const girlId=document.getElementById('oGirl').value, date=document.getElementById('oDate').value;
+  if(!coord&&girlId!==girlUserId){alert('You can only add online sales for your signed-in Girl Scout.');return}
   const amount=+document.getElementById('oAmt').value||0, delivered=document.getElementById('oDelivered').checked, note=document.getElementById('oNote').value;
   const items={};
   document.querySelectorAll('.onlineCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){items[el.dataset.key]=q; if(delivered){state.girlInv[girlId]=state.girlInv[girlId]||{inv:{},paid:0}; state.girlInv[girlId].inv[el.dataset.key]=(state.girlInv[girlId].inv[el.dataset.key]||0)-q;}}});
-  state.online.push({id:uid(),girlId,date,items,amount,delivered,note});
+  state.online.push({id:uid(),girlId,date,items,amount,delivered,note,createdByGirlId:coord?null:girlUserId});
   save(); render();
 }
 function delOnline(id){
-  if(!coord)return;
   const o=state.online.find(x=>x.id===id); if(!o)return;
+  if(!coord&&o.createdByGirlId!==girlUserId)return;
   if(!confirm('Delete this online sale entry?'))return;
   if(o.delivered)Object.entries(o.items).forEach(([k,q])=>{if(state.girlInv[o.girlId])state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)+q});
   state.online=state.online.filter(x=>x.id!==id);
@@ -341,16 +456,17 @@ function delOnline(id){
 function renderCoord(){
   if(!coord)return `<div class="card"><h2>Coordinator area</h2><p class="muted">Unlock with the button in the top right to manage the roster, prices, payments, and delete entries.</p></div>`;
   let girlRows=state.girls.map(g=>{const rec=state.girlInv[g.id]||{paid:0};
-    return `<tr><td>${g.name}</td><td><input type="number" step="0.01" id="paid_${g.id}" value="${rec.paid||0}" style="width:90px"></td><td><button class="btn danger" onclick="removeGirl('${g.id}')">Remove</button></td></tr>`}).join('');
+    return `<tr><td>${g.name}</td><td><input type="password" inputmode="numeric" maxlength="8" id="pin_${g.id}" value="${state.girlPins?.[g.id]||''}" placeholder="Set PIN" style="width:90px"></td><td><input type="number" step="0.01" id="paid_${g.id}" value="${rec.paid||0}" style="width:90px"></td><td><button class="btn danger" onclick="removeGirl('${g.id}')">Remove</button></td></tr>`}).join('');
   let priceRows=state.cookies.map(c=>`<tr><td>${c.name}</td><td><input type="number" step="0.01" id="price_${c.key}" value="${c.price}" style="width:80px"></td></tr>`).join('');
   return `<div class="card"><h2>Roster <span class="badge">Coordinator</span></h2>
-  <table><tr><th>Girl</th><th>Amount paid to troop ($)</th><th></th></tr>${girlRows}</table>
-  <button class="btn" onclick="savePaid()">Save payments</button>
+  <p class="muted">Assign each family a private 4–8 digit PIN. They will use it to manage only their own transfers and online sales.</p>
+  <table><tr><th>Girl</th><th>Family PIN</th><th>Amount paid ($)</th><th></th></tr>${girlRows}</table>
+  <button class="btn" onclick="saveRosterSettings()">Save PINs &amp; payments</button>
   <div class="grid2" style="margin-top:12px"><div><label>Add a girl</label><input id="newGirl" placeholder="First name"></div><div style="align-self:end"><button class="btn sec" onclick="addGirl()">Add girl</button></div></div>
   </div>
   <div class="card"><h2>Cookie prices</h2><table><tr><th>Cookie</th><th>Price/box</th></tr>${priceRows}</table><button class="btn" onclick="savePrices()">Save prices</button></div>
   <div class="card"><h2>Backup &amp; settings</h2>
-  <p class="muted">Data is stored only in this browser. Export a backup to move it to another device, or import one to merge in another family's booth/online entries.</p>
+  <p class="muted">Data syncs through the shared troop database. Download a backup for safekeeping or import one to replace the current shared data.</p>
   <button class="btn sec" onclick="exportData()">Download backup (.json)</button>
   <label style="margin-top:10px">Import backup file</label><input type="file" id="importFile" accept=".json">
   <button class="btn sec" onclick="importData()">Import &amp; replace all data</button>
@@ -358,9 +474,18 @@ function renderCoord(){
   <button class="btn" onclick="changePw()">Update password</button>
   </div>`;
 }
-function savePaid(){state.girls.forEach(g=>{state.girlInv[g.id]=state.girlInv[g.id]||{inv:{},paid:0};state.girlInv[g.id].paid=+document.getElementById('paid_'+g.id).value||0}); save(); render();}
+function saveRosterSettings(){
+  state.girlPins=state.girlPins||{};
+  for(const g of state.girls){
+    const pin=document.getElementById('pin_'+g.id).value.trim();
+    if(pin&&!/^\d{4,8}$/.test(pin)){alert(g.name+' needs a 4–8 digit PIN, or leave it blank.');return}
+    if(pin)state.girlPins[g.id]=pin;else delete state.girlPins[g.id];
+    state.girlInv[g.id]=state.girlInv[g.id]||{inv:{},paid:0};state.girlInv[g.id].paid=+document.getElementById('paid_'+g.id).value||0;
+  }
+  save();render();
+}
 function addGirl(){const n=document.getElementById('newGirl').value.trim(); if(!n)return; const id=uid(); state.girls.push({id,name:n}); state.girlInv[id]={inv:{},paid:0}; save(); render();}
-function removeGirl(id){if(!confirm('Remove this girl? Her inventory and payment record will be deleted.'))return; state.girls=state.girls.filter(g=>g.id!==id); delete state.girlInv[id]; save(); render();}
+function removeGirl(id){if(!confirm('Remove this girl? Her inventory, PIN, and payment record will be deleted.'))return; state.girls=state.girls.filter(g=>g.id!==id); delete state.girlInv[id];if(state.girlPins)delete state.girlPins[id];save();render();}
 function savePrices(){state.cookies.forEach(c=>{c.price=+document.getElementById('price_'+c.key).value||c.price}); save(); render();}
 function changePw(){const p=document.getElementById('newPw').value.trim(); if(!p){alert('Enter a new password.');return} state.pw=p; save(); alert('Password updated.');}
 function exportData(){
