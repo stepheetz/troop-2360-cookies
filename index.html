@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Troop 2360 Cookie Tracker</title>
+<style>
+:root{--bg:#fdfbf6;--panel:#fff;--ink:#2c2416;--sub:#6b5f4d;--line:#e6dfd0;--brown:#7a4a2c;--green:#2f6f4f;--accent:#c8862b;--danger:#a53f3f;--radius:10px}
+:root:not([data-theme="light"]){@media(prefers-color-scheme:dark){--bg:#1c1810;--panel:#262019;--ink:#f0ead9;--sub:#b8ac93;--line:#3a3226;--brown:#c98a5e;--green:#5fae82;--accent:#e0a752}}
+:root[data-theme="dark"]{--bg:#1c1810;--panel:#262019;--ink:#f0ead9;--sub:#b8ac93;--line:#3a3226;--brown:#c98a5e;--green:#5fae82;--accent:#e0a752}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,'Iowan Old Style',serif;line-height:1.4}
+header{background:var(--brown);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+header h1{margin:0;font-size:1.25rem;font-weight:600}
+header .sub{font-family:Verdana,sans-serif;font-size:.75rem;opacity:.85}
+#coordBtn{font-family:Verdana,sans-serif;font-size:.8rem;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
+#coordBtn.on{background:var(--accent);border-color:var(--accent);color:#2c2416}
+nav{display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav button{font-family:Verdana,sans-serif;font-size:.8rem;padding:7px 12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:20px;cursor:pointer}
+nav button.active{background:var(--green);color:#fff;border-color:var(--green)}
+main{max-width:920px;margin:0 auto;padding:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+h2{margin-top:0;font-size:1.05rem}
+table{width:100%;border-collapse:collapse;font-family:Verdana,sans-serif;font-size:.82rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--sub);font-weight:600}
+tr:last-child td{border-bottom:none}
+.tot{font-weight:700}
+label{display:block;font-family:Verdana,sans-serif;font-size:.75rem;color:var(--sub);margin:8px 0 3px}
+input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-family:Verdana,sans-serif;font-size:.85rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{font-family:Verdana,sans-serif;font-size:.82rem;padding:8px 14px;border:none;border-radius:7px;background:var(--green);color:#fff;cursor:pointer;margin-top:10px}
+.btn.sec{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:var(--danger)}
+.badge{display:inline-block;font-family:Verdana,sans-serif;font-size:.7rem;background:var(--accent);color:#2c2416;padding:2px 7px;border-radius:10px;margin-left:6px}
+.chk{display:flex;align-items:center;gap:6px;font-family:Verdana,sans-serif;font-size:.8rem;margin:4px 0}
+.chk input{width:auto}
+.muted{color:var(--sub);font-family:Verdana,sans-serif;font-size:.78rem}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:20}
+.modal{background:var(--panel);padding:20px;border-radius:12px;max-width:320px;width:90%}
+.row-actions button{font-size:.72rem;padding:3px 8px;margin-right:4px}
+.small{font-size:.75rem;color:var(--sub)}
+::placeholder{color:var(--sub);opacity:.6}
+#status{font-family:Verdana,sans-serif;font-size:.7rem;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.15)}
+#status.live{background:#3a7a52}
+#status.err{background:var(--danger)}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🍪 Troop 2360 Cookie Tracker</h1><div class="sub">2026 Cookie Season <span id="status">Connecting…</span></div></div>
+  <button id="coordBtn" onclick="toggleCoord()">Coordinator: Locked</button>
+</header>
+<nav id="tabs"></nav>
+<main id="app"></main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ====== PASTE YOUR FIREBASE CONFIG HERE (see setup instructions) ====== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDQ0ZGWjHcUZgMWaS47AKLrCywXCDWHTqM",
+  authDomain: "troop-2360-cookies.firebaseapp.com",
+  projectId: "troop-2360-cookies",
+  storageBucket: "troop-2360-cookies.firebasestorage.app",
+  messagingSenderId: "189199563563",
+  appId: "1:189199563563:web:a6414a9e527726345aa36e",
+  measurementId: "G-BW10NGSLQQ"
+};
+/* ======================================================================= */
+
+const COOKIES=[
+ {key:'adv',name:'Adventurefuls',price:6},{key:'exp',name:'Exploremores',price:6},
+ {key:'lem',name:'Lemonades',price:6},{key:'tre',name:'Trefoils',price:6},
+ {key:'tm',name:'Thin Mints',price:6},{key:'pbp',name:'Peanut Butter Patties',price:6},
+ {key:'cdl',name:'Caramel deLites',price:6},{key:'pbs',name:'Peanut Butter Sandwich',price:6},
+ {key:'gf',name:'Caramel Chocolate Chip (GF)',price:7},
+ {key:'spk',name:'Sparkables',price:6},{key:'pp',name:'PatchPals',price:6},
+ {key:'share',name:'Cookie Share (Donation)',price:6}];
+const GIRL_NAMES=['Amelia','Carissa','Cassie','Coco','Emersyn','Evelyn','Katherine','Keira','Madison','Morgan','Makenna','Molly','Sophia'];
+function uid(){return Math.random().toString(36).slice(2,10)}
+function defaultState(){
+  let girls=GIRL_NAMES.map(n=>({id:uid(),name:n}));
+  let girlInv={}; girls.forEach(g=>girlInv[g.id]={inv:{},paid:0});
+  return {girls,cookies:COOKIES,troopInv:{},girlInv,transfers:[],booths:[],online:[],pw:'cookies2026'};
+}
+let state=null, coord=false, db=null, docRef=null, ready=false;
+function setStatus(cls,text){const el=document.getElementById('status'); el.className=cls; el.textContent=text;}
+function save(){
+  if(!docRef)return;
+  docRef.set(state).then(()=>setStatus('live','Live')).catch(e=>{setStatus('err','Not saved — check connection'); console.error(e);});
+}
+function startApp(){
+  if(firebaseConfig.apiKey==='YOUR_API_KEY'){
+    document.getElementById('app').innerHTML=`<div class="card"><h2>Almost there</h2><p>This copy of the tracker needs a free Firebase project connected before it can sync. Open the file's code and paste your <code>firebaseConfig</code> values in near the top where it says "PASTE YOUR FIREBASE CONFIG HERE".</p></div>`;
+    setStatus('err','Not connected');
+    return;
+  }
+  document.getElementById('tabs').innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  document.getElementById('app').innerHTML='<div class="card">Connecting to the shared troop database…</div>';
+  firebase.initializeApp(firebaseConfig);
+  db=firebase.firestore();
+  docRef=db.collection('troop2360').doc('data');
+  docRef.onSnapshot(snap=>{
+    if(snap.exists){state=Object.assign(defaultState(),snap.data()); if(!state.cookies||!state.cookies.length)state.cookies=COOKIES;}
+    else{state=defaultState(); docRef.set(state);}
+    ready=true; setStatus('live','Live'); render();
+  },err=>{setStatus('err','Connection error — check your Firebase config & rules'); console.error(err);});
+}
+function zeroMap(){let m={}; state.cookies.forEach(c=>m[c.key]=0); return m}
+function invOf(obj){return Object.assign(zeroMap(),obj||{})}
+function money(n){return '$'+(Math.round(n*100)/100).toFixed(2)}
+function girlName(id){if(id==='TROOP')return 'Troop';let g=state.girls.find(x=>x.id===id);return g?g.name:'(removed)'}
+
+function toggleCoord(){
+  if(coord){coord=false;render();return}
+  let p=prompt('Coordinator password:');
+  if(p===null)return;
+  if(p===state.pw){coord=true;render();}
+  else alert('Incorrect password.');
+}
+
+const TABS=[['dash','Dashboard'],['mine','My Inventory'],['troop','Troop Inventory'],['transfers','Transfers'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
+let activeTab='dash';
+function setTab(t){activeTab=t;render();}
+
+function render(){
+  if(!ready)return;
+  document.getElementById('coordBtn').textContent='Coordinator: '+(coord?'Unlocked':'Locked');
+  document.getElementById('coordBtn').className=coord?'on':'';
+  const nav=document.getElementById('tabs');
+  nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,troop:renderTroop,transfers:renderTransfers,booths:renderBooths,online:renderOnline,coord:renderCoord}[activeTab])();
+}
+
+function totalGirlInv(){let t=zeroMap(); state.girls.forEach(g=>{let inv=invOf(state.girlInv[g.id]?.inv);state.cookies.forEach(c=>t[c.key]+=inv[c.key]||0)}); return t}
+function totalBoothsByType(){let t=zeroMap(); state.booths.forEach(b=>state.cookies.forEach(c=>t[c.key]+=b.sales[c.key]||0)); return t}
+function totalOnlineByType(){let t=zeroMap(); state.online.forEach(o=>state.cookies.forEach(c=>t[c.key]+=o.items[c.key]||0)); return t}
+
+function renderDash(){
+  const girlInv=totalGirlInv(), booth=totalBoothsByType(), online=totalOnlineByType();
+  const boothCash=state.booths.reduce((s,b)=>s+(+b.cash||0),0), boothDig=state.booths.reduce((s,b)=>s+(+b.digital||0),0), boothDon=state.booths.reduce((s,b)=>s+(+b.donations||0),0);
+  const onlineAmt=state.online.reduce((s,o)=>s+(+o.amount||0),0);
+  let rows=state.cookies.map(c=>{
+    const troopQ=state.troopInv[c.key]||0, girlQ=girlInv[c.key]||0, boothQ=booth[c.key]||0, onlineQ=online[c.key]||0;
+    return `<tr><td>${c.name}</td><td>${troopQ}</td><td>${girlQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
+  }).join('');
+  return `<div class="card"><h2>Troop overview</h2>
+  <table><tr><th>Cookie</th><th>In troop cupboard</th><th>With girls</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
+  </div>
+  <div class="card"><h2>Money raised so far</h2>
+  <table><tr><td>Booth cash</td><td>${money(boothCash)}</td></tr><tr><td>Booth digital/card</td><td>${money(boothDig)}</td></tr><tr><td>Booth donations</td><td>${money(boothDon)}</td></tr><tr><td>Online sales</td><td>${money(onlineAmt)}</td></tr>
+  <tr class="tot"><td>Total raised</td><td>${money(boothCash+boothDig+boothDon+onlineAmt)}</td></tr></table>
+  <p class="muted">"With girls" is what's currently checked out to a Girl Scout and not yet sold or transferred back. Booth and online totals are lifetime boxes sold in each channel.</p>
+  </div>`;
+}
+
+function renderMine(){
+  let opts=state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  return `<div class="card"><h2>My inventory</h2>
+  <label>Pick your name</label><select id="mineSel" onchange="render()">${opts}</select>
+  ${mineDetail(document.getElementById('mineSel')?.value||state.girls[0]?.id)}
+  </div>`;
+}
+function mineDetail(gid){
+  if(!gid)return '<p class="muted">Add girls on the Coordinator tab first.</p>';
+  const g=state.girls.find(x=>x.id===gid); if(!g)return '';
+  const rec=state.girlInv[gid]||{inv:{},paid:0}; const inv=invOf(rec.inv);
+  const boxes=state.cookies.reduce((s,c)=>s+(inv[c.key]||0),0);
+  const boothCount=state.booths.filter(b=>b.girls.includes(g.name)).length;
+  const onlineBoxes=state.online.filter(o=>o.girlId===gid).reduce((s,o)=>s+state.cookies.reduce((x,c)=>x+(o.items[c.key]||0),0),0);
+  const onlineAmt=state.online.filter(o=>o.girlId===gid).reduce((s,o)=>s+(+o.amount||0),0);
+  const value=state.cookies.reduce((s,c)=>s+(inv[c.key]||0)*c.price,0);
+  let rows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${inv[c.key]||0}</td></tr>`).join('');
+  return `<h3 style="margin-bottom:2px">${g.name}</h3>
+  <table><tr><th>Cookie</th><th>Boxes on hand</th></tr>${rows}<tr class="tot"><td>Total boxes on hand</td><td>${boxes} (${money(value)})</td></tr></table>
+  <p class="muted">Worked ${boothCount} booth(s) &middot; ${onlineBoxes} boxes sold online (${money(onlineAmt)})${coord?` &middot; Paid so far: ${money(rec.paid||0)}`:''}</p>`;
+}
+
+function renderTroop(){
+  let rows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${state.troopInv[c.key]||0}</td><td>${money(c.price)}</td></tr>`).join('');
+  let editRows= coord? state.cookies.map(c=>`<div class="grid2"><label>${c.name} qty</label><input type="number" id="ti_${c.key}" value="${state.troopInv[c.key]||0}"></div>`).join('') :'';
+  return `<div class="card"><h2>Troop cupboard inventory</h2>
+  <table><tr><th>Cookie</th><th>Boxes on hand</th><th>Price/box</th></tr>${rows}</table>
+  <p class="muted">This is stock the troop is holding that hasn't been checked out to a Girl Scout yet (e.g. cupboard pickups, initial order).</p>
+  ${coord?`<h3>Update cupboard counts <span class="badge">Coordinator</span></h3>${editRows}<button class="btn" onclick="saveTroopInv()">Save cupboard counts</button>`:'<p class="small">Only coordinators can edit cupboard totals.</p>'}
+  </div>`;
+}
+function saveTroopInv(){
+  state.cookies.forEach(c=>{state.troopInv[c.key]=+document.getElementById('ti_'+c.key).value||0});
+  save(); render();
+}
+
+function renderTransfers(){
+  let entityOpts=['<option value="TROOP">Troop cupboard</option>']+state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  let cookieOpts=state.cookies.map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
+  let list=[...state.transfers].reverse().map(t=>`<tr><td>${t.date}</td><td>${girlName(t.from)}&rarr;${girlName(t.to)}</td><td>${t.qty} ${state.cookies.find(c=>c.key===t.cookie)?.name||''}</td><td>${t.note||''}</td>
+    <td class="row-actions">${coord?`<button class="btn danger" onclick="delTransfer('${t.id}')">Delete</button>`:''}</td></tr>`).join('');
+  return `<div class="card"><h2>Record a transfer</h2>
+  <p class="muted">Move boxes between the troop cupboard and any girl, or between two girls.</p>
+  <div class="grid2"><div><label>From</label><select id="tFrom">${entityOpts}</select></div><div><label>To</label><select id="tTo">${entityOpts}</select></div></div>
+  <div class="grid2"><div><label>Cookie</label><select id="tCookie">${cookieOpts}</select></div><div><label>Boxes</label><input type="number" id="tQty" min="0"></div></div>
+  <label>Date</label><input type="date" id="tDate" value="${new Date().toISOString().slice(0,10)}">
+  <label>Note (optional)</label><input id="tNote" placeholder="e.g. cupboard pickup, girl-to-girl swap">
+  <button class="btn" onclick="addTransfer()">Save transfer</button>
+  </div>
+  <div class="card"><h2>Transfer history</h2><table><tr><th>Date</th><th>Move</th><th>Boxes</th><th>Note</th><th></th></tr>${list||'<tr><td colspan=5 class="muted">No transfers yet.</td></tr>'}</table></div>`;
+}
+function addTransfer(){
+  const from=document.getElementById('tFrom').value, to=document.getElementById('tTo').value;
+  const cookie=document.getElementById('tCookie').value, qty=+document.getElementById('tQty').value;
+  const date=document.getElementById('tDate').value, note=document.getElementById('tNote').value;
+  if(!qty||qty<=0){alert('Enter a number of boxes greater than 0.');return}
+  if(from===to){alert('From and To must be different.');return}
+  if(from==='TROOP'){state.troopInv[cookie]=(state.troopInv[cookie]||0)-qty}
+  else{state.girlInv[from]=state.girlInv[from]||{inv:{},paid:0}; state.girlInv[from].inv[cookie]=(state.girlInv[from].inv[cookie]||0)-qty}
+  if(to==='TROOP'){state.troopInv[cookie]=(state.troopInv[cookie]||0)+qty}
+  else{state.girlInv[to]=state.girlInv[to]||{inv:{},paid:0}; state.girlInv[to].inv[cookie]=(state.girlInv[to].inv[cookie]||0)+qty}
+  state.transfers.push({id:uid(),date,from,to,cookie,qty,note});
+  save(); render();
+}
+function delTransfer(id){
+  if(!coord)return;
+  const t=state.transfers.find(x=>x.id===id); if(!t)return;
+  if(!confirm('Delete this transfer? This will also undo its inventory change.'))return;
+  if(t.from==='TROOP'){state.troopInv[t.cookie]=(state.troopInv[t.cookie]||0)+t.qty} else if(state.girlInv[t.from]){state.girlInv[t.from].inv[t.cookie]=(state.girlInv[t.from].inv[t.cookie]||0)+t.qty}
+  if(t.to==='TROOP'){state.troopInv[t.cookie]=(state.troopInv[t.cookie]||0)-t.qty} else if(state.girlInv[t.to]){state.girlInv[t.to].inv[t.cookie]=(state.girlInv[t.to].inv[t.cookie]||0)-t.qty}
+  state.transfers=state.transfers.filter(x=>x.id!==id);
+  save(); render();
+}
+
+function renderBooths(){
+  let girlChks=state.girls.map(g=>`<label class="chk"><input type="checkbox" value="${g.name}" class="boothGirlChk"> ${g.name}</label>`).join('');
+  let cookieInputs=state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="boothCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+  let list=[...state.booths].reverse().map(b=>`<div class="card"><b>${b.date} &middot; ${b.location}</b> <span class="small">${b.time||''}</span><br>
+    <span class="small">Girls: ${b.girls.join(', ')||'—'}</span><br>
+    <span class="small">Sold: ${state.cookies.map(c=>b.sales[c.key]?`${c.name} ${b.sales[c.key]}`:null).filter(Boolean).join(', ')||'none entered'}</span><br>
+    <span class="small">Cash ${money(b.cash)} &middot; Digital/card ${money(b.digital)} &middot; Donations ${money(b.donations)}${b.notes?' &middot; '+b.notes:''}</span>
+    ${coord?`<div class="row-actions" style="margin-top:6px"><button class="btn danger" onclick="delBooth('${b.id}')">Delete</button></div>`:''}
+  </div>`).join('');
+  return `<div class="card"><h2>Log a booth sale</h2>
+  <p class="muted">Whoever ran the booth fills this in right after — no login needed.</p>
+  <div class="grid2"><div><label>Date</label><input type="date" id="bDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Time</label><input id="bTime" placeholder="e.g. 1:30-3:30pm"></div></div>
+  <label>Location</label><input id="bLoc" placeholder="e.g. Stater Bros - Kensington">
+  <label>Girls at this booth</label>${girlChks}
+  <h3>Boxes sold by type</h3>${cookieInputs}
+  <div class="grid2"><div><label>Cash collected</label><input type="number" id="bCash" min="0" step="0.01" placeholder="0.00"></div><div><label>Digital/card collected</label><input type="number" id="bDigital" min="0" step="0.01" placeholder="0.00"></div></div>
+  <label>Cash donations collected</label><input type="number" id="bDon" min="0" step="0.01" placeholder="0.00">
+  <label>Notes</label><textarea id="bNotes" rows="2" placeholder="anything the coordinator should know"></textarea>
+  <button class="btn" onclick="addBooth()">Submit booth report</button>
+  </div>
+  <h2>Past booths</h2>${list||'<p class="muted">No booth sales logged yet.</p>'}`;
+}
+function addBooth(){
+  const date=document.getElementById('bDate').value, time=document.getElementById('bTime').value, location=document.getElementById('bLoc').value;
+  if(!location){alert('Enter a booth location.');return}
+  const girls=[...document.querySelectorAll('.boothGirlChk:checked')].map(x=>x.value);
+  const sales={};
+  document.querySelectorAll('.boothCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){sales[el.dataset.key]=q; state.troopInv[el.dataset.key]=(state.troopInv[el.dataset.key]||0)-q;}});
+  const cash=+document.getElementById('bCash').value||0, digital=+document.getElementById('bDigital').value||0, donations=+document.getElementById('bDon').value||0, notes=document.getElementById('bNotes').value;
+  state.booths.push({id:uid(),date,time,location,girls,sales,cash,digital,donations,notes});
+  save(); render();
+}
+function delBooth(id){
+  if(!coord)return;
+  const b=state.booths.find(x=>x.id===id); if(!b)return;
+  if(!confirm('Delete this booth report? This will put its sold boxes back into troop inventory.'))return;
+  Object.entries(b.sales).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)+q});
+  state.booths=state.booths.filter(x=>x.id!==id);
+  save(); render();
+}
+
+function renderOnline(){
+  let girlOpts=state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  let cookieInputs=state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="onlineCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+  let list=[...state.online].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td>${state.cookies.map(c=>o.items[c.key]?`${c.name} ${o.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${money(o.amount)}</td><td>${o.delivered?'Girl delivery':'Shipped'}</td>
+   <td>${coord?`<button class="btn danger" onclick="delOnline('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
+  return `<div class="card"><h2>Log a Digital Cookie / online order</h2>
+  <label>Girl Scout</label><select id="oGirl">${girlOpts}</select>
+  <label>Date</label><input type="date" id="oDate" value="${new Date().toISOString().slice(0,10)}">
+  <h3>Boxes (if known)</h3>${cookieInputs}
+  <label>Order total ($)</label><input type="number" id="oAmt" min="0" step="0.01">
+  <label class="chk"><input type="checkbox" id="oDelivered"> I'm hand-delivering this order (subtract from my on-hand inventory)</label>
+  <label>Note</label><input id="oNote" placeholder="optional">
+  <button class="btn" onclick="addOnline()">Save online sale</button>
+  </div>
+  <div class="card"><h2>Online sales log</h2><table><tr><th>Date</th><th>Girl</th><th>Boxes</th><th>Amount</th><th>Type</th><th></th></tr>${list||'<tr><td colspan=6 class="muted">None logged yet.</td></tr>'}</table></div>`;
+}
+function addOnline(){
+  const girlId=document.getElementById('oGirl').value, date=document.getElementById('oDate').value;
+  const amount=+document.getElementById('oAmt').value||0, delivered=document.getElementById('oDelivered').checked, note=document.getElementById('oNote').value;
+  const items={};
+  document.querySelectorAll('.onlineCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){items[el.dataset.key]=q; if(delivered){state.girlInv[girlId]=state.girlInv[girlId]||{inv:{},paid:0}; state.girlInv[girlId].inv[el.dataset.key]=(state.girlInv[girlId].inv[el.dataset.key]||0)-q;}}});
+  state.online.push({id:uid(),girlId,date,items,amount,delivered,note});
+  save(); render();
+}
+function delOnline(id){
+  if(!coord)return;
+  const o=state.online.find(x=>x.id===id); if(!o)return;
+  if(!confirm('Delete this online sale entry?'))return;
+  if(o.delivered)Object.entries(o.items).forEach(([k,q])=>{if(state.girlInv[o.girlId])state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)+q});
+  state.online=state.online.filter(x=>x.id!==id);
+  save(); render();
+}
+
+function renderCoord(){
+  if(!coord)return `<div class="card"><h2>Coordinator area</h2><p class="muted">Unlock with the button in the top right to manage the roster, prices, payments, and delete entries.</p></div>`;
+  let girlRows=state.girls.map(g=>{const rec=state.girlInv[g.id]||{paid:0};
+    return `<tr><td>${g.name}</td><td><input type="number" step="0.01" id="paid_${g.id}" value="${rec.paid||0}" style="width:90px"></td><td><button class="btn danger" onclick="removeGirl('${g.id}')">Remove</button></td></tr>`}).join('');
+  let priceRows=state.cookies.map(c=>`<tr><td>${c.name}</td><td><input type="number" step="0.01" id="price_${c.key}" value="${c.price}" style="width:80px"></td></tr>`).join('');
+  return `<div class="card"><h2>Roster <span class="badge">Coordinator</span></h2>
+  <table><tr><th>Girl</th><th>Amount paid to troop ($)</th><th></th></tr>${girlRows}</table>
+  <button class="btn" onclick="savePaid()">Save payments</button>
+  <div class="grid2" style="margin-top:12px"><div><label>Add a girl</label><input id="newGirl" placeholder="First name"></div><div style="align-self:end"><button class="btn sec" onclick="addGirl()">Add girl</button></div></div>
+  </div>
+  <div class="card"><h2>Cookie prices</h2><table><tr><th>Cookie</th><th>Price/box</th></tr>${priceRows}</table><button class="btn" onclick="savePrices()">Save prices</button></div>
+  <div class="card"><h2>Backup &amp; settings</h2>
+  <p class="muted">Data is stored only in this browser. Export a backup to move it to another device, or import one to merge in another family's booth/online entries.</p>
+  <button class="btn sec" onclick="exportData()">Download backup (.json)</button>
+  <label style="margin-top:10px">Import backup file</label><input type="file" id="importFile" accept=".json">
+  <button class="btn sec" onclick="importData()">Import &amp; replace all data</button>
+  <label style="margin-top:14px">Change coordinator password</label><input id="newPw" placeholder="new password">
+  <button class="btn" onclick="changePw()">Update password</button>
+  </div>`;
+}
+function savePaid(){state.girls.forEach(g=>{state.girlInv[g.id]=state.girlInv[g.id]||{inv:{},paid:0};state.girlInv[g.id].paid=+document.getElementById('paid_'+g.id).value||0}); save(); render();}
+function addGirl(){const n=document.getElementById('newGirl').value.trim(); if(!n)return; const id=uid(); state.girls.push({id,name:n}); state.girlInv[id]={inv:{},paid:0}; save(); render();}
+function removeGirl(id){if(!confirm('Remove this girl? Her inventory and payment record will be deleted.'))return; state.girls=state.girls.filter(g=>g.id!==id); delete state.girlInv[id]; save(); render();}
+function savePrices(){state.cookies.forEach(c=>{c.price=+document.getElementById('price_'+c.key).value||c.price}); save(); render();}
+function changePw(){const p=document.getElementById('newPw').value.trim(); if(!p){alert('Enter a new password.');return} state.pw=p; save(); alert('Password updated.');}
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='troop2360-cookies-backup.json'; a.click();
+}
+function importData(){
+  const f=document.getElementById('importFile').files[0]; if(!f){alert('Choose a file first.');return}
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result); if(!d.girls||!d.cookies){alert('That file is not a valid backup.');return} state=d; save(); render(); alert('Data imported.');}catch(e){alert('Could not read that file.')}};
+  r.readAsText(f);
+}
+startApp();
+</script>
+</body>
+</html>
