@@ -50,7 +50,7 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 </head>
 <body>
 <header>
-  <div><h1>🍪 Troop 2360 Cookie Tracker</h1><div class="sub">2026 Cookie Season <span id="status">Connecting…</span></div></div>
+  <div><h1>🍪 Troop 2360 Cookie Tracker</h1><div class="sub">2027 Cookie Season · Girl inventory only <span id="status">Connecting…</span></div></div>
   <div class="header-actions"><button id="girlBtn" onclick="toggleGirlLogin()">Family sign in</button><button id="coordBtn" onclick="toggleCoord()">Coordinator: Locked</button></div>
 </header>
 <nav id="tabs"></nav>
@@ -83,7 +83,7 @@ function uid(){return Math.random().toString(36).slice(2,10)}
 function defaultState(){
   let girls=GIRL_NAMES.map(n=>({id:uid(),name:n}));
   let girlInv={}; girls.forEach(g=>girlInv[g.id]={inv:{},paid:0});
-  return {girls,cookies:COOKIES,troopInv:{},girlInv,girlPins:{},girlSales:[],transfers:[],transferRequests:[],inventoryReceipts:[],payments:[],booths:[],online:[],pw:'cookies2026'};
+  return {girls,cookies:COOKIES,troopInv:{},girlInv,girlPins:{},cupboardOrders:[],participation:{},boothGoal:10,girlSales:[],transfers:[],transferRequests:[],inventoryReceipts:[],payments:[],booths:[],online:[],pw:'cookies2026'};
 }
 let state=null, coord=false, girlUserId=sessionStorage.getItem('girlUserId')||null, db=null, docRef=null, ready=false;
 function setStatus(cls,text){const el=document.getElementById('status'); el.className=cls; el.textContent=text;}
@@ -105,6 +105,7 @@ function startApp(){
   docRef.onSnapshot(snap=>{
     if(snap.exists){state=Object.assign(defaultState(),snap.data()); if(!state.cookies||!state.cookies.length)state.cookies=COOKIES;}
     else{state=defaultState(); docRef.set(state);}
+    if(!state.cupboardOrders)state.cupboardOrders=[];if(!state.participation)state.participation={};
     if(girlUserId&&!state.girls.some(g=>g.id===girlUserId)){girlUserId=null;sessionStorage.removeItem('girlUserId');}
     ready=true; setStatus('live','Live'); render();
   },err=>{setStatus('err','Connection error — check your Firebase config & rules'); console.error(err);});
@@ -136,7 +137,7 @@ function doGirlLogin(){
   girlUserId=id;sessionStorage.setItem('girlUserId',id);closeGirlLogin();render();
 }
 
-const TABS=[['dash','Dashboard'],['mine','My Records'],['troop','Troop Inventory'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
+const TABS=[['dash','Dashboard'],['mine','My Records'],['orders','Cupboard Orders'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
 let activeTab='dash', selectedGirlId=null, editingReceiptId=null;
 function setTab(t){activeTab=t;render();}
 function setMineGirl(id){selectedGirlId=id;render();}
@@ -150,7 +151,7 @@ function render(){
   girlBtn.className=signedGirl?'on':'';
   const nav=document.getElementById('tabs');
   nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${k==='mine'&&signedGirl?signedGirl.name+'\'s Records':l}</button>`).join('');
-  document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,troop:renderTroop,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,coord:renderCoord}[activeTab])();
+  document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,orders:renderOrders,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,coord:renderCoord}[activeTab])();
 }
 
 function totalGirlInv(){let t=zeroMap(); state.girls.forEach(g=>{let inv=invOf(state.girlInv[g.id]?.inv);state.cookies.forEach(c=>t[c.key]+=inv[c.key]||0)}); return t}
@@ -164,16 +165,16 @@ function renderDash(){
   const onlineAmt=state.online.reduce((s,o)=>s+(+o.amount||0),0);
   const customerPaid=(state.girlSales||[]).reduce((s,o)=>s+(+o.amountPaid||0),0);
   let rows=state.cookies.map(c=>{
-    const troopQ=state.troopInv[c.key]||0, girlQ=girlInv[c.key]||0, directQ=girlSales[c.key]||0, boothQ=booth[c.key]||0, onlineQ=online[c.key]||0;
-    return `<tr><td>${c.name}</td><td>${troopQ}</td><td>${girlQ}</td><td>${directQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
+    const troopQ=0, girlQ=girlInv[c.key]||0, directQ=girlSales[c.key]||0, boothQ=booth[c.key]||0, onlineQ=online[c.key]||0;
+    return `<tr><td>${c.name}</td><td>${girlQ}</td><td>${directQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
   }).join('');
   return `<div class="card"><h2>Troop overview</h2>
-  <table><tr><th>Cookie</th><th>In troop cupboard</th><th>With girls</th><th>Customer sales</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
+  <table><tr><th>Cookie</th><th>With girls</th><th>Customer sales</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
   </div>
   <div class="card"><h2>Money raised so far</h2>
   <table><tr><td>Customer payments collected</td><td>${money(customerPaid)}</td></tr><tr><td>Booth cash</td><td>${money(boothCash)}</td></tr><tr><td>Booth digital/card</td><td>${money(boothDig)}</td></tr><tr><td>Booth donations</td><td>${money(boothDon)}</td></tr><tr><td>Online sales</td><td>${money(onlineAmt)}</td></tr>
   <tr class="tot"><td>Total raised</td><td>${money(customerPaid+boothCash+boothDig+boothDon+onlineAmt)}</td></tr></table>
-  <p class="muted">"With girls" is what's currently checked out to a Girl Scout and not yet sold or transferred back. Booth and online totals are lifetime boxes sold in each channel.</p>
+  <p class="muted">All physical inventory belongs to individual girls; there is no shared troop stock. Booth and online totals are lifetime boxes sold in each channel.</p>
   </div>`;
 }
 
@@ -211,77 +212,30 @@ function addCustomerPayment(id){
   const sale=(state.girlSales||[]).find(x=>x.id===id);if(!sale)return;if(!coord&&sale.girlId!==girlUserId)return;const entered=prompt('Additional payment received from '+sale.customer+':','0.00');if(entered===null)return;const amount=+entered;if(!amount||amount<=0){alert('Enter an amount greater than $0.');return}sale.amountPaid=(+sale.amountPaid||0)+amount;save();render();
 }
 
-function renderTroop(){
-  let rows=state.cookies.map(c=>`<tr><td>${c.name}</td><td>${state.troopInv[c.key]||0}</td><td>${money(c.price)}</td></tr>`).join('');
-  let editRows= coord? state.cookies.map(c=>`<div class="grid2"><label>${c.name} qty</label><input type="number" id="ti_${c.key}" value="${state.troopInv[c.key]||0}"></div>`).join('') :'';
-  const editing=(state.inventoryReceipts||[]).find(r=>r.id===editingReceiptId)||null;
-  let addRows=coord?state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="receiptQty" data-key="${c.key}" value="${editing?.items?.[c.key]||''}" placeholder="0"></div>`).join(''):'';
-  let receiptRows=[...(state.inventoryReceipts||[])].reverse().map(r=>`<tr><td>${r.date}</td><td>${r.source==='troop-transfer'?'Transfer from Troop '+(r.troopNumber||'—'):'Cupboard pickup'}</td><td>${state.cookies.map(c=>r.items[c.key]?`${c.name} ${r.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${r.notes||''}</td><td class="row-actions">${coord?`<button class="btn sec" onclick="editInventoryReceipt('${r.id}')">Edit</button><button class="btn danger" onclick="delInventoryReceipt('${r.id}')">Delete</button>`:''}</td></tr>`).join('');
-  return `<div class="card"><h2>Troop cupboard inventory</h2>
-  <table><tr><th>Cookie</th><th>Boxes on hand</th><th>Price/box</th></tr>${rows}</table>
-  <p class="muted">This is stock the troop is holding that hasn't been checked out to a Girl Scout yet (e.g. cupboard pickups, initial order).</p>
-  ${coord?`<h3>${editing?'Edit inventory entry':'Add inventory'} <span class="badge">Coordinator</span></h3>
-  <p class="muted">${editing?'Saving changes will adjust the cupboard totals by the difference.':'Use this for cupboard pickups or cookies received from another troop. The quantities will be added to the cupboard total.'}</p>
-  <div class="grid2"><div><label>Date received</label><input type="date" id="rDate" value="${editing?.date||new Date().toISOString().slice(0,10)}"></div><div><label>Source</label><select id="rSource"><option value="cupboard" ${editing?.source==='cupboard'?'selected':''}>Cupboard pickup</option><option value="troop-transfer" ${editing?.source==='troop-transfer'?'selected':''}>Transfer from another troop</option></select></div></div>
-  <label>Other troop number (for troop transfers)</label><input id="rTroop" value="${editing?.troopNumber||''}" placeholder="e.g. 1234">
-  <h3>Boxes received by type</h3>${addRows}
-  <label>Notes</label><input id="rNotes" value="${editing?.notes||''}" placeholder="e.g. Irvine cupboard pickup or transfer details">
-  <button class="btn" onclick="addInventoryReceipt()">${editing?'Save entry changes':'Add to troop inventory'}</button>${editing?' <button class="btn sec" onclick="cancelReceiptEdit()">Cancel</button>':''}
-  <details style="margin-top:18px"><summary class="small" style="cursor:pointer;font-weight:700">Correct cupboard totals manually</summary>${editRows}<button class="btn sec" onclick="saveTroopInv()">Save corrected totals</button></details>`:'<p class="small">Only coordinators can add or correct cupboard inventory.</p>'}
-  </div>
-  <div class="card"><h2>Inventory received history</h2><table><tr><th>Date</th><th>Source</th><th>Boxes received</th><th>Notes</th><th></th></tr>${receiptRows||'<tr><td colspan="5" class="muted">No cupboard pickups or incoming troop transfers recorded yet.</td></tr>'}</table></div>`;
+function renderOrders(){
+ const can=coord||girlUserId;
+ const opts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+ const fields=state.cookies.filter(c=>c.key!=='share').map(c=>`<label>${c.name}</label><input type="number" min="0" class="orderQty" data-key="${c.key}" placeholder="0">`).join('');
+ const rows=[...(state.cupboardOrders||[])].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td>${o.status}</td><td>${state.cookies.filter(c=>o.items?.[c.key]).map(c=>c.name+' × '+o.items[c.key]).join(', ')}</td><td>${o.notes||''}</td><td>${coord?`<button class="btn sec" onclick="setOrderStatus('${o.id}','ordered')">Ordered</button> <button class="btn sec" onclick="setOrderStatus('${o.id}','received')">Received by girl</button> <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
+ const participation=coord?`<div class="card"><h2>Participation choices</h2>${state.girls.map(g=>`<label>${g.name}</label><select onchange="setParticipation('${g.id}',this.value)">${[['both','Individual + booths'],['individual','Individual only'],['booths','Booths only']].map(([v,l])=>`<option value="${v}" ${(state.participation||{})[g.id]===v?'selected':''}>${l}</option>`).join('')}</select>`).join('')}</div>`:'';
+ return participation+`<div class="card"><h2>Girl cupboard requests & pickups</h2><p class="muted">No troop storage. All cupboard pickups are assigned directly to a girl. The Inventory Lead collects requests, places orders and coordinates pickup/distribution. Mark “Received by girl” only after physical handoff; that adds boxes to her inventory.</p>${can?`<label>Girl</label><select id="orderGirl">${opts}</select><label>Requested / pickup date</label><input type="date" id="orderDate" value="${new Date().toISOString().slice(0,10)}"><div class="grid2">${fields}</div><label>Notes</label><input id="orderNotes" placeholder="Initial order, cupboard restock, pickup arrangements"><button class="btn" onclick="addOrder()">Submit cookie request</button>`:'<p>Sign in to request cookies.</p>'}</div><div class="card"><h2>Order history</h2><table><tr><th>Date</th><th>Girl</th><th>Status</th><th>Cookies</th><th>Notes</th><th>Actions</th></tr>${rows||'<tr><td colspan="6">No requests yet</td></tr>'}</table></div>`;
 }
-function saveTroopInv(){
-  state.cookies.forEach(c=>{state.troopInv[c.key]=+document.getElementById('ti_'+c.key).value||0});
-  save(); render();
-}
-
-function addInventoryReceipt(){
-  if(!coord)return;
-  const date=document.getElementById('rDate').value, source=document.getElementById('rSource').value;
-  const troopNumber=document.getElementById('rTroop').value.trim(), notes=document.getElementById('rNotes').value.trim(), items={};
-  let total=0;
-  document.querySelectorAll('.receiptQty').forEach(el=>{const q=+el.value||0;if(q>0){items[el.dataset.key]=q;total+=q;}});
-  if(!date){alert('Choose the date the cookies were received.');return}
-  if(source==='troop-transfer'&&!troopNumber){alert('Enter the troop number the cookies came from.');return}
-  if(!total){alert('Enter at least one box received.');return}
-  state.inventoryReceipts=state.inventoryReceipts||[];
-  const existing=state.inventoryReceipts.find(r=>r.id===editingReceiptId);
-  if(existing){
-    state.cookies.forEach(c=>{state.troopInv[c.key]=(state.troopInv[c.key]||0)+(items[c.key]||0)-(existing.items?.[c.key]||0)});
-    Object.assign(existing,{date,source,troopNumber,notes,items});editingReceiptId=null;
-  }else{
-    Object.entries(items).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)+q});
-    state.inventoryReceipts.push({id:uid(),date,source,troopNumber,notes,items});
-  }
-  save();render();
-}
-
-function editInventoryReceipt(id){if(!coord)return;editingReceiptId=id;render();window.scrollTo({top:0,behavior:'smooth'});}
-function cancelReceiptEdit(){editingReceiptId=null;render();}
-
-function delInventoryReceipt(id){
-  if(!coord)return;
-  const r=(state.inventoryReceipts||[]).find(x=>x.id===id);if(!r)return;
-  if(!confirm('Delete this inventory receipt? Its boxes will be removed from troop inventory.'))return;
-  Object.entries(r.items||{}).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)-q});
-  state.inventoryReceipts=state.inventoryReceipts.filter(x=>x.id!==id);
-  if(editingReceiptId===id)editingReceiptId=null;
-  save();render();
-}
+function addOrder(){if(!coord&&!girlUserId)return;const girlId=document.getElementById('orderGirl').value,items={};document.querySelectorAll('.orderQty').forEach(e=>{let q=+e.value||0;if(q>0)items[e.dataset.key]=q});if(!Object.keys(items).length)return alert('Enter cookies requested.');state.cupboardOrders.push({id:uid(),girlId,items,date:document.getElementById('orderDate').value,notes:document.getElementById('orderNotes').value,status:'requested'});save();render()}
+function setOrderStatus(id,status){if(!coord)return;const o=state.cupboardOrders.find(x=>x.id===id);if(!o)return;if(o.status==='received'&&status!=='received')return alert('Received orders cannot be reversed here.');if(o.status==='received')return;if(status==='received'){if(!confirm('Confirm cookies were physically given to '+girlName(o.girlId)+'? This adds them to her inventory.'))return;state.girlInv[o.girlId]=state.girlInv[o.girlId]||{inv:{},paid:0};Object.entries(o.items).forEach(([k,q])=>state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)+q)}o.status=status;save();render()}
+function deleteOrder(id){if(!coord)return;const o=state.cupboardOrders.find(x=>x.id===id);if(!o||o.status==='received')return alert('Cannot delete a received order; correct through an inventory adjustment.');if(!confirm('Delete this request?'))return;state.cupboardOrders=state.cupboardOrders.filter(x=>x.id!==id);save();render()}
 
 function renderTransfers(){
   const permittedGirls=state.girls;
-  let entityOpts=(coord?'<option value="TROOP">Troop cupboard</option>':'')+permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  let entityOpts=permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   let cookieOpts=state.cookies.map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
   let list=[...state.transfers].reverse().map(t=>`<tr><td>${t.date}</td><td>${girlName(t.from)}&rarr;${girlName(t.to)}</td><td>${t.qty} ${state.cookies.find(c=>c.key===t.cookie)?.name||''}</td><td>${t.note||''}</td>
     <td class="row-actions">${coord||t.createdByGirlId===girlUserId?`<button class="btn danger" onclick="delTransfer('${t.id}')">Delete</button>`:''}</td></tr>`).join('');
   const form=coord||girlUserId?`<div class="card"><h2>Record a transfer</h2>
-  <p class="muted">${coord?'Move boxes between the troop cupboard and any girl, or between two girls.':'Transfer between your Girl Scout and another girl. Transfers involving the troop cupboard require the coordinator.'}</p>
+  <p class="muted">Move cookies directly between girls. Either family can record the transfer.</p>
   <div class="grid2"><div><label>From</label><select id="tFrom">${entityOpts}</select></div><div><label>To</label><select id="tTo">${entityOpts}</select></div></div>
   <div class="grid2"><div><label>Cookie</label><select id="tCookie">${cookieOpts}</select></div><div><label>Boxes</label><input type="number" id="tQty" min="0"></div></div>
   <label>Date</label><input type="date" id="tDate" value="${new Date().toISOString().slice(0,10)}">
-  <label>Note (optional)</label><input id="tNote" placeholder="e.g. cupboard pickup, girl-to-girl swap">
+  <label>Note (optional)</label><input id="tNote" placeholder="e.g. booth partner inventory swap">
   <button class="btn" onclick="addTransfer()">Save transfer</button>
   </div>`:`<div class="card"><h2>Record a transfer</h2><p class="muted">Sign in with either participating Girl Scout's PIN to record a girl-to-girl transfer.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
   return `${form}<div class="card"><h2>Transfer history</h2><table><tr><th>Date</th><th>Move</th><th>Boxes</th><th>Note</th><th></th></tr>${list||'<tr><td colspan=5 class="muted">No transfers yet.</td></tr>'}</table></div>`;
@@ -292,6 +246,7 @@ function addTransfer(){
   const date=document.getElementById('tDate').value, note=document.getElementById('tNote').value;
   if(!qty||qty<=0){alert('Enter a number of boxes greater than 0.');return}
   if(from===to){alert('From and To must be different.');return}
+  if(from==='TROOP'||to==='TROOP'){alert('Troop inventory is retired. Transfer only between girls.');return}
   if(!coord&&(from==='TROOP'||to==='TROOP')){alert('Only the coordinator can record troop cupboard transfers.');return}
   if(!coord&&(!girlUserId||(from!==girlUserId&&to!==girlUserId))){alert('One side of the transfer must be your signed-in Girl Scout.');return}
   if(from==='TROOP'){state.troopInv[cookie]=(state.troopInv[cookie]||0)-qty}
@@ -323,7 +278,7 @@ function renderRequests(){
     <label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p class="muted">Sign in with your Girl Scout's PIN to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
   const cards=[...(state.transferRequests||[])].reverse().map(r=>{
     const remaining=requestRemaining(r), cookie=state.cookies.find(c=>c.key===r.cookie)?.name||r.cookie;
-    const actorOpts=coord?'<option value="TROOP">Troop cupboard</option>'+state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join(''):girlUserId?`<option value="${girlUserId}">${girlName(girlUserId)}</option>`:'';
+    const actorOpts=coord?state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join(''):girlUserId?`<option value="${girlUserId}">${girlName(girlUserId)}</option>`:'';
     const history=(r.fulfillments||[]).map(f=>`${girlName(f.actorId)} ${r.type==='need'?'gave':'received'} ${f.qty}`).join(' · ');
     const canDelete=(coord||r.requesterId===girlUserId)&&!(r.fulfillments||[]).length;
     const fulfill=(coord||girlUserId)&&remaining>0?`<div class="grid2"><div><label>${r.type==='need'?'Fulfill from':'Give to'}</label><select id="qActor_${r.id}">${actorOpts}</select></div><div><label>Boxes to fulfill</label><input type="number" min="1" max="${remaining}" id="qFill_${r.id}" placeholder="up to ${remaining}"></div></div><button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill request</button>`:'';
@@ -344,6 +299,7 @@ function fulfillRequest(id){
   if(!coord&&actorId!==girlUserId)return;
   if(!coord&&actorId==='TROOP'){alert('Only the coordinator can use troop cupboard inventory.');return}
   const from=r.type==='need'?actorId:r.requesterId,to=r.type==='need'?r.requesterId:actorId;
+  if(from==='TROOP'||to==='TROOP'){alert('Troop inventory is retired.');return;}
   if(from===to){alert('Choose a different Girl Scout to fulfill this request.');return}
   const available=from==='TROOP'?(state.troopInv[r.cookie]||0):(state.girlInv[from]?.inv?.[r.cookie]||0);
   if(available<qty&&!confirm(girlName(from)+' currently shows only '+available+' box(es). Record this transfer anyway?'))return;
@@ -409,7 +365,8 @@ function renderBooths(){
   <div class="grid2"><div><label>Date</label><input type="date" id="bDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Time</label><input id="bTime" placeholder="e.g. 1:30-3:30pm"></div></div>
   <label>Location</label><input id="bLoc" placeholder="e.g. Stater Bros - Kensington">
   <label>Girls at this booth</label>${girlChks}
-  <h3>Boxes sold by type</h3>${cookieInputs}
+  <h3>Boxes sold by type</h3><p class="muted">Enter total sold at the booth, then allocate the physical boxes sold to each participating girl's inventory below. Sales credit is still split evenly.</p>${cookieInputs}
+  <h3>Physical inventory used by each girl</h3><div id="boothAllocation"></div><button type="button" class="btn sec" onclick="showBoothAllocation()">Set / refresh girl inventory allocations</button>
   <div class="grid2"><div><label>Cash collected</label><input type="number" id="bCash" min="0" step="0.01" placeholder="0.00"></div><div><label>Digital/card collected</label><input type="number" id="bDigital" min="0" step="0.01" placeholder="0.00"></div></div>
   <label>Cash donations collected</label><input type="number" id="bDon" min="0" step="0.01" placeholder="0.00">
   <label>Notes</label><textarea id="bNotes" rows="2" placeholder="anything the coordinator should know"></textarea>
@@ -417,22 +374,32 @@ function renderBooths(){
   </div>
   <h2>Past booths</h2>${list||'<p class="muted">No booth sales logged yet.</p>'}`;
 }
+function showBoothAllocation(){
+ const girls=[...document.querySelectorAll('.boothGirlChk:checked')].map(e=>e.value);
+ const html=girls.map(name=>{const g=state.girls.find(x=>x.name===name);return `<div class="card"><b>${name} — boxes physically sold from her stock</b>${state.cookies.filter(c=>c.key!=='share').map(c=>`<label>${c.name} (on hand: ${state.girlInv[g.id]?.inv?.[c.key]||0})</label><input class="boothAlloc" type="number" min="0" data-girl="${g.id}" data-cookie="${c.key}" value="0">`).join('')}</div>`}).join('');
+ document.getElementById('boothAllocation').innerHTML=html||'<p>Select girls first.</p>';
+}
 function addBooth(){
   const date=document.getElementById('bDate').value, time=document.getElementById('bTime').value, location=document.getElementById('bLoc').value;
   if(!location){alert('Enter a booth location.');return}
   const girls=[...document.querySelectorAll('.boothGirlChk:checked')].map(x=>x.value);
   if(!girls.length){alert('Select at least one participating Girl Scout so the booth totals can be divided correctly.');return}
   const sales={};
-  document.querySelectorAll('.boothCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){sales[el.dataset.key]=q; state.troopInv[el.dataset.key]=(state.troopInv[el.dataset.key]||0)-q;}});
+  document.querySelectorAll('.boothCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){sales[el.dataset.key]=q;}});
+  const allocations={};document.querySelectorAll('.boothAlloc').forEach(el=>{const q=+el.value||0;if(q>0){allocations[el.dataset.girl]=allocations[el.dataset.girl]||{};allocations[el.dataset.girl][el.dataset.cookie]=q;}});
+  if(!document.querySelectorAll('.boothAlloc').length)return alert('Click Set / refresh girl inventory allocations before submitting.');
+  for(const c of state.cookies){if(c.key==='share')continue;const assigned=Object.values(allocations).reduce((sum,a)=>sum+(a[c.key]||0),0);if(assigned!==(sales[c.key]||0))return alert('Physical allocations for '+c.name+' ('+assigned+') must match sold total ('+(sales[c.key]||0)+').');}
+  for(const [id,items] of Object.entries(allocations))for(const [k,q] of Object.entries(items))if((state.girlInv[id]?.inv?.[k]||0)<q)return alert(girlName(id)+' has insufficient '+k+' inventory. Record cupboard pickups or transfers first.');
+  for(const [id,items] of Object.entries(allocations))for(const [k,q] of Object.entries(items))state.girlInv[id].inv[k]-=q;
   const cash=+document.getElementById('bCash').value||0, digital=+document.getElementById('bDigital').value||0, donations=+document.getElementById('bDon').value||0, notes=document.getElementById('bNotes').value;
-  state.booths.push({id:uid(),date,time,location,girls,sales,cash,digital,donations,notes});
+  state.booths.push({id:uid(),date,time,location,girls,sales,allocations,cash,digital,donations,notes});
   save(); render();
 }
 function delBooth(id){
   if(!coord)return;
   const b=state.booths.find(x=>x.id===id); if(!b)return;
-  if(!confirm('Delete this booth report? This will put its sold boxes back into troop inventory.'))return;
-  Object.entries(b.sales).forEach(([k,q])=>{state.troopInv[k]=(state.troopInv[k]||0)+q});
+  if(!confirm('Delete this booth report? This will restore physical boxes to the girls who supplied them.'))return;
+  for(const [gid,items] of Object.entries(b.allocations||{}))for(const [k,q] of Object.entries(items)){if(state.girlInv[gid])state.girlInv[gid].inv[k]=(state.girlInv[gid].inv[k]||0)+q;}
   state.booths=state.booths.filter(x=>x.id!==id);
   save(); render();
 }
@@ -472,6 +439,7 @@ function delOnline(id){
   save(); render();
 }
 
+function setParticipation(id,value){if(!coord)return;state.participation=state.participation||{};state.participation[id]=value;save();render()}
 function renderCoord(){
   if(!coord)return `<div class="card"><h2>Coordinator area</h2><p class="muted">Unlock with the button in the top right to manage the roster, prices, payments, and delete entries.</p></div>`;
   let girlRows=state.girls.map(g=>{const rec=state.girlInv[g.id]||{paid:0};
