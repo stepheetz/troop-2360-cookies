@@ -74,6 +74,12 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 .booth-history td:last-child{white-space:normal;min-width:130px}
 .booth-history .btn{margin:2px;padding:4px 7px}
 @media(max-width:1100px){.dashboard-layout{grid-template-columns:1fr}.timeline-list{max-height:400px}.resources-grid{grid-template-columns:1fr}}
+/* Keep quantity fields immediately beside their cookie names across all entry forms. */
+.cookie-grid{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;row-gap:4px}
+.cookie-line{display:flex;justify-content:flex-start;align-items:center;gap:5px;flex-wrap:nowrap;min-width:0}
+.cookie-line label{flex:0 1 auto;width:auto;min-width:0;margin:0;line-height:1.25}
+.cookie-line input[type="number"]{flex:0 0 57px;width:57px;min-width:0;margin:0;padding:3px 4px;text-align:center}
+@media(max-width:480px){.cookie-line{flex-wrap:nowrap}.cookie-line input[type="number"]{flex-basis:48px;width:48px}.cookie-grid{column-gap:8px}}
 </style>
 </head>
 <body>
@@ -256,9 +262,10 @@ function renderOrders(){
  const can=coord||girlUserId;
  const opts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
  const fields=state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="orderQty" data-key="${c.key}" placeholder="0"></div>`).join('');
- const rows=[...(state.cupboardOrders||[])].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td class="order-check">${['requested','ordered','received'].map((v,i)=>['requested','ordered','received'].indexOf(o.status)>=i?'✓':'—').join('</td><td class="order-check">')}</td><td>${state.cookies.filter(c=>o.items?.[c.key]).map(c=>c.name+' × '+o.items[c.key]).join(', ')}</td><td>${o.notes||''}</td><td>${(coord||girlUserId===o.girlId)&& (coord||o.status==='requested')?`<button class="btn sec" onclick="editOrder('${o.id}')">Edit</button>`:''} ${coord?`<button class="btn sec" onclick="setOrderStatus('${o.id}','ordered')">Ordered</button> <button class="btn sec" onclick="setOrderStatus('${o.id}','received')">Received by girl</button> <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
- const participation='';
- return participation+`<div class="card"><h2>Girl cupboard requests & pickups</h2><p class="muted">No troop storage. All cupboard pickups are assigned directly to a girl. The Inventory Lead collects requests, places orders and coordinates pickup/distribution. Mark “Received by girl” only after physical handoff; that adds boxes to her inventory.</p>${can?`<label>Girl</label><select id="orderGirl">${opts}</select><label>Requested / pickup date</label><input type="date" id="orderDate" value="${new Date().toISOString().slice(0,10)}"><div class="cookie-grid">${fields}</div><label>Notes</label><input id="orderNotes" placeholder="Initial order, cupboard restock, pickup arrangements"><button class="btn" onclick="addOrder()">Submit cookie request</button>`:'<p>Sign in to request cookies.</p>'}</div><div class="card"><h2>Order history</h2><table><tr><th>Date</th><th>Girl</th><th>Requested</th><th>Ordered</th><th>Received by girl</th><th>Cookies</th><th>Notes</th><th>Actions</th></tr>${rows||'<tr><td colspan="8">No requests yet</td></tr>'}</table></div>`;
+ const orderCookies=state.cookies.filter(c=>c.key!=='share');
+ const orderAbbr={adv:'ADV',exp:'EXP',lem:'LEM',tre:'TRE',tm:'THM',pbp:'PBP',cdl:'CDL',pbs:'PBS',gf:'CCC',spk:'SPA',pp:'PAL'};
+ const rows=[...(state.cupboardOrders||[])].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td class="order-check">✓</td><td class="order-check">${['ordered','received'].includes(o.status)?'✓':'—'}</td><td class="order-check">${o.status==='received'?'✓':'—'}</td>${orderCookies.map(c=>`<td class="order-qty">${o.items?.[c.key]||'—'}</td>`).join('')}<td>${o.notes||''}</td><td>${(coord||girlUserId===o.girlId)&&(coord||o.status==='requested')?`<button class="btn sec" onclick="editOrder('${o.id}')">Edit</button>`:''} ${coord?`<button class="btn sec" onclick="setOrderStatus('${o.id}','ordered')">Ordered</button> <button class="btn sec" onclick="setOrderStatus('${o.id}','received')">Received by girl</button> <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
+ return `<div class="card"><h2>Girl cupboard requests & pickups</h2><p class="muted">No troop storage. All cupboard pickups are assigned directly to a girl. The Inventory Lead collects requests, places orders and coordinates pickup/distribution. Mark “Received by girl” only after physical handoff; that adds boxes to her inventory.</p>${can?`<label>Girl</label><select id="orderGirl">${opts}</select><label>Requested / pickup date</label><input type="date" id="orderDate" value="${new Date().toISOString().slice(0,10)}"><div class="cookie-grid">${fields}</div><label>Notes</label><input id="orderNotes" placeholder="Initial order, cupboard restock, pickup arrangements"><button class="btn" onclick="addOrder()">Submit cookie request</button>`:'<p>Sign in to request cookies.</p>'}</div><div class="card"><h2>Order history</h2><div style="overflow-x:auto"><table style="white-space:nowrap"><tr><th>Date</th><th>Girl</th><th>Requested</th><th>Ordered</th><th>Received by girl</th>${orderCookies.map(c=>`<th title="${c.name}">${orderAbbr[c.key]||c.name}</th>`).join('')}<th>Notes</th><th>Actions</th></tr>${rows||`<tr><td colspan="${7+orderCookies.length}">No requests yet</td></tr>`}</table></div></div>`;
 }
 function addOrder(){if(!coord&&!girlUserId)return;const girlId=document.getElementById('orderGirl').value,items={};document.querySelectorAll('.orderQty').forEach(e=>{let q=+e.value||0;if(q>0)items[e.dataset.key]=q});if(!Object.keys(items).length)return alert('Enter cookies requested.');state.cupboardOrders.push({id:uid(),girlId,items,date:document.getElementById('orderDate').value,notes:document.getElementById('orderNotes').value,status:'requested'});save();render()}
 function setOrderStatus(id,status){if(!coord)return;const o=state.cupboardOrders.find(x=>x.id===id);if(!o)return;if(o.status==='received'&&status!=='received')return alert('Received orders cannot be reversed here.');if(o.status==='received')return;if(status==='received'){if(!confirm('Confirm cookies were physically given to '+girlName(o.girlId)+'? This adds them to her inventory.'))return;state.girlInv[o.girlId]=state.girlInv[o.girlId]||{inv:{},paid:0};Object.entries(o.items).forEach(([k,q])=>state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)+q)}o.status=status;save();render()}
@@ -327,23 +334,37 @@ function delTransfer(id){
 }
 
 function requestRemaining(r){return Math.max(0,(+r.qty||0)-(r.fulfillments||[]).reduce((s,f)=>s+(+f.qty||0),0))}
+function requestTable(items,title){
+ const keys=['adv','exp','lem','tre','tm','pbp','cdl','pbs','gf','spk','pp'];
+ const abbr=['ADV','EXP','LEM','TRE','THM','PBP','CDL','PBS','CCC','SPA','PAL'];
+ const heads=keys.map((k,i)=>`<th title="${state.cookies.find(c=>c.key===k)?.name||k}">${abbr[i]}</th>`).join('');
+ const rows=items.map(r=>{
+  const rem=requestRemaining(r),done=rem===0,allowed=coord||girlUserId===r.requesterId;
+  const cells=keys.map(k=>`<td style="text-align:center">${r.cookie===k?r.qty:'–'}</td>`).join('');
+  const hist=(r.fulfillments||[]).map(f=>`${girlName(f.actorId)}: ${f.qty}`).join('; ');
+  const actorOpts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const action=(!done&&(coord||girlUserId)?`<div style="min-width:135px"><select aria-label="Fulfilled by" id="qActor_${r.id}">${actorOpts}</select><input aria-label="Quantity to fulfill" id="qFill_${r.id}" type="number" min="1" max="${rem}" placeholder="Qty ≤ ${rem}" style="width:85px"><button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill</button></div>`:'')+(allowed?`<button class="btn sec" onclick="editRequest('${r.id}')">Edit</button>`:'')+(allowed&&!(r.fulfillments||[]).length?`<button class="btn danger" onclick="delRequest('${r.id}')">Delete</button>`:'');
+  return `<tr><td><b>${girlName(r.requesterId)}</b></td><td>${r.date||''}</td><td>${r.type==='give'?'I can give':'I need'}</td>${cells}<td>${rem}</td><td>${r.note||''}${hist?`<div class="small">Fulfilled: ${hist}</div>`:''}</td><td>${action}</td></tr>`;
+ }).join('');
+ return `<div class="card"><h2 style="color:var(--ink)">${title}</h2><div style="overflow-x:auto"><table><thead><tr><th>Girl</th><th>Date</th><th>Type</th>${heads}<th>Remaining</th><th>Notes / History</th><th>Actions</th></tr></thead><tbody>${rows||`<tr><td colspan="17">No ${title.toLowerCase()}.</td></tr>`}</tbody></table></div></div>`;
+}
 function renderRequests(){
-  const cookieOpts=state.cookies.map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
-  const girlOpts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
-  const createForm=coord||girlUserId?`<div class="card"><h2>Post a transfer request</h2><p class="muted">Ask for boxes you need, or offer boxes you can give. Other families can fulfill all or part of the request.</p>
-    <label>Girl Scout</label><select id="qGirl">${girlOpts}</select>
-    <div class="grid2"><div><label>Request type</label><select id="qType"><option value="need">I need / want to take</option><option value="give">I can give</option></select></div><div><label>Date</label><input type="date" id="qDate" value="${new Date().toISOString().slice(0,10)}"></div></div>
-    <div class="grid2"><div><label>Cookie</label><select id="qCookie">${cookieOpts}</select></div><div><label>Total boxes</label><input type="number" min="1" id="qQty"></div></div>
-    <label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p class="muted">Sign in with your Girl Scout's PIN to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
-  const cards=[...(state.transferRequests||[])].reverse().map(r=>{
-    const remaining=requestRemaining(r), cookie=state.cookies.find(c=>c.key===r.cookie)?.name||r.cookie;
-    const actorOpts=coord?state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join(''):girlUserId?`<option value="${girlUserId}">${girlName(girlUserId)}</option>`:'';
-    const history=(r.fulfillments||[]).map(f=>`${girlName(f.actorId)} ${r.type==='need'?'gave':'received'} ${f.qty}`).join(' · ');
-    const canDelete=(coord||r.requesterId===girlUserId)&&!(r.fulfillments||[]).length;
-    const fulfill=(coord||girlUserId)&&remaining>0?`<div class="grid2"><div><label>${r.type==='need'?'Fulfill from':'Give to'}</label><select id="qActor_${r.id}">${actorOpts}</select></div><div><label>Boxes to fulfill</label><input type="number" min="1" max="${remaining}" id="qFill_${r.id}" placeholder="up to ${remaining}"></div></div><button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill request</button>`:'';
-    return `<div class="card"><h2>${r.type==='need'?'🔎 Needs':'🎁 Can give'}: ${cookie}</h2><p><b>${girlName(r.requesterId)}</b> requested ${r.qty} box(es) on ${r.date}. <b>${remaining} remaining.</b></p>${r.note?`<p class="small">${r.note}</p>`:''}${history?`<p class="muted">Fulfilled so far: ${history}</p>`:''}${fulfill}${canDelete?` <button class="btn danger" onclick="delRequest('${r.id}')">Delete request</button>`:''}${remaining===0?'<span class="badge">Fulfilled</span>':''}</div>`;
-  }).join('');
-  return `${createForm}<h2 class="requests-heading">Open and fulfilled requests</h2>${cards||'<div class="card"><p class="muted">No transfer requests yet.</p></div>'}`;
+ const cookieOpts=state.cookies.filter(c=>c.key!=='share').map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
+ const girlOpts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+ const createForm=coord||girlUserId?`<div class="card"><h2>Post a transfer request</h2><p class="muted">Request cookies or offer extras. Partial fulfillment is supported.</p><label>Girl Scout</label><select id="qGirl">${girlOpts}</select><div class="grid2"><div><label>Request type</label><select id="qType"><option value="need">I need</option><option value="give">I can give</option></select></div><div><label>Date</label><input type="date" id="qDate" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="grid2"><div><label>Cookie</label><select id="qCookie">${cookieOpts}</select></div><div><label>Total boxes</label><input type="number" min="1" id="qQty"></div></div><label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p>Sign in to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
+ const all=[...(state.transferRequests||[])].reverse();
+ return createForm+`<h2 class="requests-heading" style="color:var(--ink)!important;font-weight:700">Open and fulfilled requests</h2>`+requestTable(all.filter(r=>requestRemaining(r)>0),'Open requests')+requestTable(all.filter(r=>requestRemaining(r)===0),'Fulfilled requests');
+}
+function editRequest(id){
+ const r=(state.transferRequests||[]).find(x=>x.id===id);if(!r||(!coord&&r.requesterId!==girlUserId))return;
+ const fulfilled=(r.fulfillments||[]).reduce((s,f)=>s+(+f.qty||0),0);
+ const qty=prompt(`Total requested boxes (already fulfilled: ${fulfilled}):`,r.qty);if(qty===null)return;
+ const n=Number(qty);if(!Number.isInteger(n)||n<1||n<fulfilled){alert(`Enter a whole number at least ${Math.max(1,fulfilled)}.`);return;}
+ const note=prompt('Request note:',r.note||'');if(note===null)return;
+ const date=prompt('Request date (YYYY-MM-DD):',r.date||'');if(date===null)return;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert('Enter date as YYYY-MM-DD.');return;}
+ if(!fulfilled){const typeLabel=prompt('Request type: I need or I can give',r.type==='give'?'I can give':'I need');if(typeLabel===null)return;const type=typeLabel.trim().toLowerCase()==='i need'?'need':typeLabel.trim().toLowerCase()==='i can give'?'give':null;if(!type){alert('Choose I need or I can give.');return;}const cookie=prompt('Cookie code (e.g. tm, adv, cdl):',r.cookie);if(cookie===null)return;if(!state.cookies.some(c=>c.key===cookie&&cookie!=='share')){alert('Unknown cookie code.');return;}r.type=type;r.cookie=cookie;}
+ r.qty=n;r.note=note.trim();r.date=date;save();render();
 }
 function addRequest(){
   const requesterId=document.getElementById('qGirl').value,type=document.getElementById('qType').value,date=document.getElementById('qDate').value,cookie=document.getElementById('qCookie').value,qty=+document.getElementById('qQty').value,note=document.getElementById('qNote').value.trim();
