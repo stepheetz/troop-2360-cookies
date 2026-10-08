@@ -49,13 +49,13 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 .cookie-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}.cookie-line{display:flex;align-items:center;justify-content:space-between;gap:6px;font:12px Verdana,sans-serif;padding:2px 0}.cookie-line label{margin:0;flex:1;font-size:11px}.cookie-line input{width:65px;min-width:55px;padding:4px 5px}.cookie-grid .grid2{display:contents}@media(max-width:480px){.cookie-grid{grid-template-columns:1fr 1fr}.cookie-line{flex-wrap:wrap}.cookie-line input{width:56px}}.warn{color:#a53f3f;font-weight:bold}.order-check{font-size:1.1rem}
 
 /* 2026 timeline, resource library and compact booth history */
-.dash-roles{grid-column:1;grid-row:2}.dash-stats{grid-column:2;grid-row:1 / span 2}
-@media(max-width:850px){.dash-roles,.dash-stats{grid-column:auto;grid-row:auto}}
+.dash-timeline{grid-column:1;grid-row:1}.dash-roles{grid-column:2;grid-row:1}.dash-stats{grid-column:3;grid-row:1}
+@media(max-width:1100px){.dash-timeline,.dash-roles,.dash-stats{grid-column:auto;grid-row:auto}}
 .role-entry{padding:9px 0;border-bottom:1px solid var(--line)}
 .role-entry:last-child{border-bottom:0}
 .role-entry h3{font:700 13px Verdana,sans-serif;color:var(--green);margin:0 0 5px}
 .role-entry p{font:12px/1.5 Verdana,sans-serif;margin:0;color:var(--ink)}
-.dashboard-layout{display:grid;grid-template-columns:minmax(260px,0.85fr) minmax(0,1.6fr);gap:14px;align-items:start}
+.dashboard-layout{display:grid;grid-template-columns:minmax(235px,0.95fr) minmax(260px,1.1fr) minmax(360px,1.6fr);gap:14px;align-items:start}
 .dashboard-layout .card{margin-top:0;margin-bottom:14px}
 .dash-stats{min-width:0}
 .timeline-list{max-height:860px;overflow-y:auto;padding-right:6px}
@@ -65,7 +65,7 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 .resource-link{display:flex;flex-direction:column;gap:5px;border:1px solid var(--line);border-radius:8px;padding:10px;text-decoration:none;color:var(--ink);overflow-wrap:anywhere;font:12px/1.4 Verdana,sans-serif}
 .resource-link:hover{border-color:var(--green);background:rgba(0,131,79,.06)}
 .resource-link small{color:var(--sub)}
-.past-booths-heading{color:var(--ink)!important;font-weight:700}
+.past-booths-heading,.requests-heading{color:var(--ink)!important;font-weight:700}.dash-roles .role-entry ul{margin:4px 0 10px;padding-left:18px}.dash-roles .role-entry li{margin:2px 0;font-size:.81rem;line-height:1.35}
 .table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}
 .booth-history{width:max-content;min-width:100%;border-collapse:collapse;font:11px/1.4 Verdana,sans-serif}
 .booth-history th,.booth-history td{padding:7px 8px;border:1px solid var(--line);vertical-align:top;white-space:nowrap}
@@ -73,7 +73,7 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 .booth-history td.num{text-align:right;font-variant-numeric:tabular-nums}
 .booth-history td:last-child{white-space:normal;min-width:130px}
 .booth-history .btn{margin:2px;padding:4px 7px}
-@media(max-width:850px){.dashboard-layout{grid-template-columns:1fr}.timeline-list{max-height:400px}.resources-grid{grid-template-columns:1fr}}
+@media(max-width:1100px){.dashboard-layout{grid-template-columns:1fr}.timeline-list{max-height:400px}.resources-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -201,11 +201,11 @@ function renderDash(){
     return `<tr><td>${c.name}</td><td>${girlQ}</td><td>${directQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
   }).join('');
   return `<div class="dashboard-layout"><section class="dash-timeline card"><h2>📅 Program timeline</h2><p class="muted">2026 dates from Troop Plan Book, pp. 4–5. Reference only; update for 2027 when council confirms dates.</p><div class="timeline-list">${TIMELINE_2026.map(([date,event])=>`<div class="timeline-item"><strong>${date}</strong><span>${event}</span></div>`).join('')}</div></section><section class="dash-roles card"><h2>🍪 Cookie Team & Responsibilities</h2>
-<div class="role-entry"><h3>Cookie Lead — Stephanie O’Keeffe</h3><p>Oversee the season timeline, council communication, key deadlines, lead coordination, website setup and maintenance, and escalations. Keep the program organized without taking on day-to-day inventory, booth, or finance duties.</p></div>
-<div class="role-entry"><h3>Co-Cookie Lead — Aubrey Buracchio</h3><p>Support the Cookie Lead with communication, deadline reminders, administrative tasks, and coordination across the team; provide backup when the Cookie Lead is unavailable.</p></div>
-<div class="role-entry"><h3>Booth Lead — Katrina Wu</h3><p>Manage approximately 10 booth reservations, family sign-ups, girl assignments, booth procedures, and booth-kit handoffs. Ensure all participating girls and parents understand booth rules, and communicate any specific rules or requirements for each booth location before their shift. Coordinate with booth partners on cookie supply and confirm booth results are recorded.</p></div>
-<div class="role-entry"><h3>Inventory Lead — Jessica Liu</h3><p>Coordinate initial and ongoing cupboard orders, consolidate family requests, arrange pickups and distribution, and help resolve girl-to-girl transfers or inventory discrepancies. Each family stores its own cookies; there is no central troop inventory.</p></div>
-<div class="role-entry"><h3>Finance Lead — Belinda Cho</h3><p>Organize booth starting change, track family payments and balances, reconcile booth cash and digital payments against reported sales, coordinate deposits, follow up on outstanding balances, and complete final financial reconciliation.</p></div>
+<div class="role-entry"><h3>Cookie Lead — Stephanie O’Keeffe</h3><ul><li>Manage timeline, deadlines, and council communications.</li><li>Coordinate leads, website, and escalations.</li></ul></div>
+<div class="role-entry"><h3>Co-Cookie Lead — Aubrey Buracchio</h3><ul><li>Support communications, reminders, and administration.</li><li>Back up the Cookie Lead as needed.</li></ul></div>
+<div class="role-entry"><h3>Booth Lead — Katrina Wu</h3><ul><li>Attend booth lottery and select booth slots (~10 total).</li><li>Manage booth sign-ups, assignments, and kit handoffs.</li><li>Teach girls and parents booth rules; share each location’s specific rules before shifts.</li><li>Coordinate booth partners and ensure sales are logged.</li></ul></div>
+<div class="role-entry"><h3>Inventory Lead — Jessica Liu</h3><ul><li>Consolidate family requests and place cupboard orders.</li><li>Coordinate pickups, distribution, and transfers.</li><li>Resolve discrepancies; no central troop inventory.</li></ul></div>
+<div class="role-entry"><h3>Finance Lead — Belinda Cho</h3><ul><li>Prepare booth change and track family payments.</li><li>Reconcile booth cash, cards, and sales; coordinate deposits.</li><li>Follow up on balances and complete final reconciliation.</li></ul></div>
 </section><section class="dash-stats"><div class="card"><h2>Troop overview</h2>
   <table><tr><th>Cookie</th><th>With girls</th><th>Customer sales</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
   </div>
@@ -341,7 +341,7 @@ function renderRequests(){
     const fulfill=(coord||girlUserId)&&remaining>0?`<div class="grid2"><div><label>${r.type==='need'?'Fulfill from':'Give to'}</label><select id="qActor_${r.id}">${actorOpts}</select></div><div><label>Boxes to fulfill</label><input type="number" min="1" max="${remaining}" id="qFill_${r.id}" placeholder="up to ${remaining}"></div></div><button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill request</button>`:'';
     return `<div class="card"><h2>${r.type==='need'?'🔎 Needs':'🎁 Can give'}: ${cookie}</h2><p><b>${girlName(r.requesterId)}</b> requested ${r.qty} box(es) on ${r.date}. <b>${remaining} remaining.</b></p>${r.note?`<p class="small">${r.note}</p>`:''}${history?`<p class="muted">Fulfilled so far: ${history}</p>`:''}${fulfill}${canDelete?` <button class="btn danger" onclick="delRequest('${r.id}')">Delete request</button>`:''}${remaining===0?'<span class="badge">Fulfilled</span>':''}</div>`;
   }).join('');
-  return `${createForm}<h2>Open and fulfilled requests</h2>${cards||'<div class="card"><p class="muted">No transfer requests yet.</p></div>'}`;
+  return `${createForm}<h2 class="requests-heading">Open and fulfilled requests</h2>${cards||'<div class="card"><p class="muted">No transfer requests yet.</p></div>'}`;
 }
 function addRequest(){
   const requesterId=document.getElementById('qGirl').value,type=document.getElementById('qType').value,date=document.getElementById('qDate').value,cookie=document.getElementById('qCookie').value,qty=+document.getElementById('qQty').value,note=document.getElementById('qNote').value.trim();
@@ -408,12 +408,13 @@ function boothCreditForGirl(girl){
 }
 function renderBooths(){
   let girlChks=state.girls.map(g=>`<label class="chk"><input type="checkbox" value="${g.name}" class="boothGirlChk"> ${g.name}</label>`).join('');
-  let cookieInputs=state.cookies.map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="boothCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+  let cookieInputs=state.cookies.map(c=>`<div class="cookie-line"><label title="${c.name}">${({adv:"ADV",exp:"EXP",lem:"LEM",tre:"TRE",tm:"THM",pbp:"PBP",cdl:"CDL",pbs:"PBS",gf:"CCC",spk:"SPA",pp:"PAL",share:"SHR"})[c.key]||c.name}</label><input type="number" min="0" class="boothCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
   let creditRows=state.girls.map(g=>{const x=boothCreditForGirl(g);return `<tr><td>${g.name}</td><td>${x.booths}</td><td>${x.boxes.toFixed(1)}</td><td>${money(x.amount)}</td></tr>`}).join('');
-  const boothHeaders=state.cookies.map(c=>`<th title="${c.name}">${c.name}</th>`).join('');
+  const boothAbbr={adv:'ADV',exp:'EXP',lem:'LEM',tre:'TRE',tm:'THM',pbp:'PBP',cdl:'CDL',pbs:'PBS',gf:'CCC',spk:'SPA',pp:'PAL',share:'SHR'};
+  const boothHeaders=state.cookies.filter(c=>c.key!=='share').map(c=>`<th title="${c.name}">${boothAbbr[c.key]||c.name}</th>`).join('');
   const list=[...state.booths].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(b=>{
     const total=state.cookies.reduce((n,c)=>n+(+b.sales?.[c.key]||0),0);
-    const amounts=state.cookies.map(c=>`<td class="num">${+b.sales?.[c.key]||0}</td>`).join('');
+    const amounts=state.cookies.filter(c=>c.key!=='share').map(c=>`<td class="num">${+b.sales?.[c.key]||0}</td>`).join('');
     return `<tr><td>${b.date||''}</td><td>${escapeText(b.location||'')}</td><td>${escapeText(b.time||'')}</td><td>${(b.girls||[]).map(escapeText).join(', ')}</td>${amounts}<td class="num"><b>${total}</b></td><td class="num">${money(+b.cash||0)}</td><td class="num">${money(+b.digital||0)}</td><td class="num">${money(+b.donations||0)}</td><td>${escapeText(b.notes||'')}${b.discrepancies?.length?`<div class="warn">⚠ ${b.discrepancies.map(escapeText).join('; ')}</div>`:''}</td><td>${coord?`<button class="btn sec" onclick="editBooth('${b.id}')">Edit</button><button class="btn danger" onclick="delBooth('${b.id}')">Delete</button>`:''}</td></tr>`;
   }).join('');
   return `<div class="card"><h2>Cumulative booth credit by girl</h2><p class="muted">Each booth's boxes and collected dollars are divided evenly among all participating girls listed for that booth.</p><table><tr><th>Girl Scout</th><th>Booths</th><th>Credited boxes</th><th>Credited sales</th></tr>${creditRows}</table></div><div class="card"><h2>Log a booth sale</h2>
@@ -428,11 +429,11 @@ function renderBooths(){
   <label class="chk"><input type="checkbox" id="bOverride"> Override inventory / boxes-sold discrepancy and flag this booth</label><label>Notes</label><textarea id="bNotes" rows="2" placeholder="anything the coordinator should know"></textarea>
   <button class="btn" onclick="addBooth()">Submit booth report</button>
   </div>
-  <div class="card"><h2 class="past-booths-heading">Past booths</h2><p class="muted">Scroll horizontally to see every cookie type, totals, payment amounts, and notes.</p><div class="table-scroll"><table class="booth-history"><thead><tr><th>Date</th><th>Location</th><th>Time</th><th>Girls</th>${boothHeaders}<th>Total boxes</th><th>Cash</th><th>Digital/card</th><th>Donations</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${list||`<tr><td colspan="${state.cookies.length+10}">No booth sales logged yet.</td></tr>`}</tbody></table></div></div>`;
+  <div class="card"><h2 class="past-booths-heading">Past booths</h2><p class="muted">Scroll horizontally to see every cookie type, totals, payment amounts, and notes.</p><div class="table-scroll"><table class="booth-history"><thead><tr><th>Date</th><th>Location</th><th>Time</th><th>Girls</th>${boothHeaders}<th>Total boxes</th><th>Cash</th><th>Digital/card</th><th>Donations</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${list||`<tr><td colspan="${state.cookies.filter(c=>c.key!=='share').length+10}">No booth sales logged yet.</td></tr>`}</tbody></table></div></div>`;
 }
 function showBoothAllocation(){
  const girls=[...document.querySelectorAll('.boothGirlChk:checked')].map(e=>e.value);
- const html=girls.map(name=>{const g=state.girls.find(x=>x.name===name);return `<div class="card"><b>${name} — boxes physically sold from her stock</b><div class="cookie-grid">${state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label>${c.name} (${state.girlInv[g.id]?.inv?.[c.key]||0})</label><input class="boothAlloc" type="number" min="0" data-girl="${g.id}" data-cookie="${c.key}" value="0"></div>`).join('')}</div></div>`}).join('');
+ const html=girls.map(name=>{const g=state.girls.find(x=>x.name===name);return `<div class="card"><b>${name} — boxes physically sold from her stock</b><div class="cookie-grid">${state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label title="${c.name}">${({adv:"ADV",exp:"EXP",lem:"LEM",tre:"TRE",tm:"THM",pbp:"PBP",cdl:"CDL",pbs:"PBS",gf:"CCC",spk:"SPA",pp:"PAL"})[c.key]||c.name} (${state.girlInv[g.id]?.inv?.[c.key]||0})</label><input class="boothAlloc" type="number" min="0" data-girl="${g.id}" data-cookie="${c.key}" value="0"></div>`).join('')}</div></div>`}).join('');
  document.getElementById('boothAllocation').innerHTML=html||'<p>Select girls first.</p>';
 }
 function addBooth(){
