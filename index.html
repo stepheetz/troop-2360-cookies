@@ -343,10 +343,13 @@ function requestTable(items,title){
   const cells=keys.map(k=>`<td style="text-align:center">${r.cookie===k?r.qty:'–'}</td>`).join('');
   const hist=(r.fulfillments||[]).map(f=>`${girlName(f.actorId)}: ${f.qty}`).join('; ');
   const actorOpts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
-  const action=(!done&&(coord||girlUserId)?`<div style="min-width:135px"><select aria-label="Fulfilled by" id="qActor_${r.id}">${actorOpts}</select><input aria-label="Quantity to fulfill" id="qFill_${r.id}" type="number" min="1" max="${rem}" placeholder="Qty ≤ ${rem}" style="width:85px"><button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill</button></div>`:'')+(allowed?`<button class="btn sec" onclick="editRequest('${r.id}')">Edit</button>`:'')+(allowed&&!(r.fulfillments||[]).length?`<button class="btn danger" onclick="delRequest('${r.id}')">Delete</button>`:'');
-  return `<tr><td><b>${girlName(r.requesterId)}</b></td><td>${r.date||''}</td><td>${r.type==='give'?'I can give':'I need'}</td>${cells}<td>${rem}</td><td>${r.note||''}${hist?`<div class="small">Fulfilled: ${hist}</div>`:''}</td><td>${action}</td></tr>`;
+  const canFulfill=!done&&(coord||girlUserId);
+  const actor=canFulfill?`<select aria-label="Fulfilled by" id="qActor_${r.id}" style="min-width:105px">${actorOpts}</select>`:(hist||'—');
+  const quantity=canFulfill?`<input aria-label="Quantity to fulfill" id="qFill_${r.id}" type="number" min="1" max="${rem}" placeholder="0" style="width:65px;min-width:65px">`:'—';
+  const action=(canFulfill?`<button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill</button>`:'')+(allowed?`<button class="btn sec" onclick="editRequest('${r.id}')">Edit</button>`:'')+(allowed&&!(r.fulfillments||[]).length?`<button class="btn danger" onclick="delRequest('${r.id}')">Delete</button>`:'');
+  return `<tr><td><b>${girlName(r.requesterId)}</b></td><td>${r.date||''}</td><td>${r.type==='give'?'I can give':'I need'}</td>${cells}<td>${rem}</td><td>${r.note||''}</td><td>${actor}</td><td>${quantity}</td><td style="white-space:nowrap">${action}</td></tr>`;
  }).join('');
- return `<div class="card"><h2 style="color:var(--ink)">${title}</h2><div style="overflow-x:auto"><table><thead><tr><th>Girl</th><th>Date</th><th>Type</th>${heads}<th>Remaining</th><th>Notes / History</th><th>Actions</th></tr></thead><tbody>${rows||`<tr><td colspan="17">No ${title.toLowerCase()}.</td></tr>`}</tbody></table></div></div>`;
+ return `<div class="card"><h2 style="color:var(--ink)">${title}</h2><div style="overflow-x:auto"><table><thead><tr><th>Girl</th><th>Date</th><th>Type</th>${heads}<th>Remaining</th><th>Notes</th><th>Fulfilled By</th><th>Quantity</th><th>Fulfill / Edit / Delete</th></tr></thead><tbody>${rows||`<tr><td colspan="19">No ${title.toLowerCase()}.</td></tr>`}</tbody></table></div></div>`;
 }
 function renderRequests(){
  const cookieOpts=state.cookies.filter(c=>c.key!=='share').map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
