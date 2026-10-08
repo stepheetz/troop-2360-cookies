@@ -46,6 +46,34 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 #status{font-family:Verdana,sans-serif;font-size:.7rem;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.15)}
 #status.live{background:#3a7a52}
 #status.err{background:var(--danger)}
+.cookie-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}.cookie-line{display:flex;align-items:center;justify-content:space-between;gap:6px;font:12px Verdana,sans-serif;padding:2px 0}.cookie-line label{margin:0;flex:1;font-size:11px}.cookie-line input{width:65px;min-width:55px;padding:4px 5px}.cookie-grid .grid2{display:contents}@media(max-width:480px){.cookie-grid{grid-template-columns:1fr 1fr}.cookie-line{flex-wrap:wrap}.cookie-line input{width:56px}}.warn{color:#a53f3f;font-weight:bold}.order-check{font-size:1.1rem}
+
+/* 2026 timeline, resource library and compact booth history */
+.dash-roles{grid-column:1;grid-row:2}.dash-stats{grid-column:2;grid-row:1 / span 2}
+@media(max-width:850px){.dash-roles,.dash-stats{grid-column:auto;grid-row:auto}}
+.role-entry{padding:9px 0;border-bottom:1px solid var(--line)}
+.role-entry:last-child{border-bottom:0}
+.role-entry h3{font:700 13px Verdana,sans-serif;color:var(--green);margin:0 0 5px}
+.role-entry p{font:12px/1.5 Verdana,sans-serif;margin:0;color:var(--ink)}
+.dashboard-layout{display:grid;grid-template-columns:minmax(260px,0.85fr) minmax(0,1.6fr);gap:14px;align-items:start}
+.dashboard-layout .card{margin-top:0;margin-bottom:14px}
+.dash-stats{min-width:0}
+.timeline-list{max-height:860px;overflow-y:auto;padding-right:6px}
+.timeline-item{display:grid;grid-template-columns:115px minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font:12px/1.4 Verdana,sans-serif}
+.timeline-item strong{color:var(--green)}
+.resources-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.resource-link{display:flex;flex-direction:column;gap:5px;border:1px solid var(--line);border-radius:8px;padding:10px;text-decoration:none;color:var(--ink);overflow-wrap:anywhere;font:12px/1.4 Verdana,sans-serif}
+.resource-link:hover{border-color:var(--green);background:rgba(0,131,79,.06)}
+.resource-link small{color:var(--sub)}
+.past-booths-heading{color:var(--ink)!important;font-weight:700}
+.table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.booth-history{width:max-content;min-width:100%;border-collapse:collapse;font:11px/1.4 Verdana,sans-serif}
+.booth-history th,.booth-history td{padding:7px 8px;border:1px solid var(--line);vertical-align:top;white-space:nowrap}
+.booth-history th{background:var(--panel);color:var(--ink);font-weight:700;position:sticky;top:0}
+.booth-history td.num{text-align:right;font-variant-numeric:tabular-nums}
+.booth-history td:last-child{white-space:normal;min-width:130px}
+.booth-history .btn{margin:2px;padding:4px 7px}
+@media(max-width:850px){.dashboard-layout{grid-template-columns:1fr}.timeline-list{max-height:400px}.resources-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -137,7 +165,9 @@ function doGirlLogin(){
   girlUserId=id;sessionStorage.setItem('girlUserId',id);closeGirlLogin();render();
 }
 
-const TABS=[['dash','Dashboard'],['mine','My Records'],['orders','Cupboard Orders'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['coord','Coordinator']];
+const RESOURCE_FILES=[{"name": "116 BSP2026.pdf", "url": "Resources/116%20BSP2026.pdf", "kind": "PDF"}, {"name": "2025-Troop-Balance-Summary-pdf.pdf", "url": "Resources/2025-Troop-Balance-Summary-pdf.pdf", "kind": "PDF"}, {"name": "2026 Girl Scout Cookie Sales - TEMPLATE.xlsx", "url": "Resources/2026%20Girl%20Scout%20Cookie%20Sales%20-%20TEMPLATE.xlsx", "kind": "XLSX"}, {"name": "2026-Cookie-Family-Guide_Final.pdf", "url": "Resources/2026-Cookie-Family-Guide_Final.pdf", "kind": "PDF"}, {"name": "2026_BFF_AllergenGuide.pdf", "url": "Resources/2026_BFF_AllergenGuide.pdf", "kind": "PDF"}, {"name": "2026_BFF_CookieLineUp_PRINT.pdf", "url": "Resources/2026_BFF_CookieLineUp_PRINT.pdf", "kind": "PDF"}, {"name": "2026_BFF_CookieLineUp_PRINT.pdf-2.pdf", "url": "Resources/2026_BFF_CookieLineUp_PRINT.pdf-2.pdf", "kind": "PDF"}, {"name": "2026_Cookie-Program-Girl-Rewards.pdf", "url": "Resources/2026_Cookie-Program-Girl-Rewards.pdf", "kind": "PDF"}, {"name": "ABC-Cookie-Booth-Tally-Sheet-2026.pdf", "url": "Resources/ABC-Cookie-Booth-Tally-Sheet-2026.pdf", "kind": "PDF"}, {"name": "Booth Sales Best Practices 2026 12-26-25.pdf", "url": "Resources/Booth%20Sales%20Best%20Practices%202026%2012-26-25.pdf", "kind": "PDF"}, {"name": "BoothTimesReport.pdf", "url": "Resources/BoothTimesReport.pdf", "kind": "PDF"}, {"name": "cookie dos_ and don_ts.pdf", "url": "Resources/cookie%20dos_%20and%20don_ts.pdf", "kind": "PDF"}, {"name": "cookie line up prices.pdf", "url": "Resources/cookie%20line%20up%20prices.pdf", "kind": "PDF"}, {"name": "Cookie-Booth-Sale-Guidelines.pdf", "url": "Resources/Cookie-Booth-Sale-Guidelines.pdf", "kind": "PDF"}, {"name": "Cookie-Share-Receipts.pdf", "url": "Resources/Cookie-Share-Receipts.pdf", "kind": "PDF"}, {"name": "Damaged-Product-Report-Cookies-2025.pdf", "url": "Resources/Damaged-Product-Report-Cookies-2025.pdf", "kind": "PDF"}, {"name": "Donate to Troops.png", "url": "Resources/Donate%20to%20Troops.png", "kind": "PNG"}, {"name": "Forms of Payment.png", "url": "Resources/Forms%20of%20Payment.png", "kind": "PNG"}, {"name": "How-Many-GS-Cookies.pdf", "url": "Resources/How-Many-GS-Cookies.pdf", "kind": "PDF"}, {"name": "Irvine-Business-Lic.-Exp.-02.28.26.pdf", "url": "Resources/Irvine-Business-Lic.-Exp.-02.28.26.pdf", "kind": "PDF"}, {"name": "Irvine-Company-Entry-Permit_2026.pdf", "url": "Resources/Irvine-Company-Entry-Permit_2026.pdf", "kind": "PDF"}, {"name": "Prop_65_Warning_Sign.pdf", "url": "Resources/Prop_65_Warning_Sign.pdf", "kind": "PDF"}, {"name": "Troop-Initial-Order-Bonus_2026.pdf", "url": "Resources/Troop-Initial-Order-Bonus_2026.pdf", "kind": "PDF"}, {"name": "Troop-Plan-Book-2026_FINAL_Posted.pdf", "url": "Resources/Troop-Plan-Book-2026_FINAL_Posted.pdf", "kind": "PDF"}, {"name": "Tustin-Business-License-2026.pdf", "url": "Resources/Tustin-Business-License-2026.pdf", "kind": "PDF"}];
+const TIMELINE_2026=[["Nov 24–Jan 14", "Preparation, training, family meeting, booth lottery"], ["Dec 15", "Initial troop order deadline"], ["Dec 22–31", "Cookie materials mailed"], ["Dec 29", "Digital Cookie volunteer registration"], ["Jan 2", "Digital Cookie girl registration"], ["Jan 6", "Pre-orders and online sales begin"], ["Jan 8", "Troop banking information"], ["Jan 11", "Cookie kickoff"], ["Jan 20", "Booked booth sales report"], ["Jan 23–25", "Initial order pickup and distribution"], ["Jan 24", "Mega Delivery"], ["Jan 25", "In-hand sales and deliveries begin"], ["Jan 27–28", "First-come booth reservations"], ["Jan 29", "Cookie cupboards open"], ["Feb 1–Mar 15", "Collect and reconcile girl payments"], ["Feb 6–Mar 15", "Booth sales"], ["Feb 26", "Cookie swap site available"], ["Mar 15", "Cookie program ends / collect final balances"], ["Mar 15–18", "End-of-sale processing"], ["Mar 17", "Final deposit / payment adjustment deadline"], ["Mar 18", "Final troop report due"], ["Mar 19", "Final ACH debit begins"], ["May 1–15", "Girl rewards pickup"], ["May 22", "Final reward adjustments"]];
+const TABS=[['dash','Dashboard'],['mine','My Records'],['orders','Cupboard Orders'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['resources','Resources'],['coord','Coordinator']];
 let activeTab='dash', selectedGirlId=null, editingReceiptId=null;
 function setTab(t){activeTab=t;render();}
 function setMineGirl(id){selectedGirlId=id;render();}
@@ -151,7 +181,7 @@ function render(){
   girlBtn.className=signedGirl?'on':'';
   const nav=document.getElementById('tabs');
   nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${k==='mine'&&signedGirl?signedGirl.name+'\'s Records':l}</button>`).join('');
-  document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,orders:renderOrders,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,coord:renderCoord}[activeTab])();
+  document.getElementById('app').innerHTML=({dash:renderDash,mine:renderMine,orders:renderOrders,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,resources:renderResources,coord:renderCoord}[activeTab])();
 }
 
 function totalGirlInv(){let t=zeroMap(); state.girls.forEach(g=>{let inv=invOf(state.girlInv[g.id]?.inv);state.cookies.forEach(c=>t[c.key]+=inv[c.key]||0)}); return t}
@@ -159,6 +189,8 @@ function totalGirlSalesByType(){let t=zeroMap();(state.girlSales||[]).forEach(o=
 function totalBoothsByType(){let t=zeroMap(); state.booths.forEach(b=>state.cookies.forEach(c=>t[c.key]+=b.sales[c.key]||0)); return t}
 function totalOnlineByType(){let t=zeroMap(); state.online.forEach(o=>state.cookies.forEach(c=>t[c.key]+=o.items[c.key]||0)); return t}
 
+function escapeText(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function renderResources(){return `<div class="card"><h2>📚 Resources</h2><p class="muted">2026 reference materials. Replace outdated files with current council documents before the 2027 season. Links work when the Resources folder is uploaded alongside index.html.</p><div class="resources-grid">${RESOURCE_FILES.map(f=>`<a class="resource-link" href="${f.url}" target="_blank" rel="noopener"><span>📄 ${escapeText(f.name)}</span><small>${f.kind} · 2026 reference ↗</small></a>`).join('')}</div></div>`;}
 function renderDash(){
   const girlInv=totalGirlInv(), girlSales=totalGirlSalesByType(), booth=totalBoothsByType(), online=totalOnlineByType();
   const boothCash=state.booths.reduce((s,b)=>s+(+b.cash||0),0), boothDig=state.booths.reduce((s,b)=>s+(+b.digital||0),0), boothDon=state.booths.reduce((s,b)=>s+(+b.donations||0),0);
@@ -168,14 +200,20 @@ function renderDash(){
     const troopQ=0, girlQ=girlInv[c.key]||0, directQ=girlSales[c.key]||0, boothQ=booth[c.key]||0, onlineQ=online[c.key]||0;
     return `<tr><td>${c.name}</td><td>${girlQ}</td><td>${directQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
   }).join('');
-  return `<div class="card"><h2>Troop overview</h2>
+  return `<div class="dashboard-layout"><section class="dash-timeline card"><h2>📅 Program timeline</h2><p class="muted">2026 dates from Troop Plan Book, pp. 4–5. Reference only; update for 2027 when council confirms dates.</p><div class="timeline-list">${TIMELINE_2026.map(([date,event])=>`<div class="timeline-item"><strong>${date}</strong><span>${event}</span></div>`).join('')}</div></section><section class="dash-roles card"><h2>🍪 Cookie Team & Responsibilities</h2>
+<div class="role-entry"><h3>Cookie Lead — Stephanie O’Keeffe</h3><p>Oversee the season timeline, council communication, key deadlines, lead coordination, website setup and maintenance, and escalations. Keep the program organized without taking on day-to-day inventory, booth, or finance duties.</p></div>
+<div class="role-entry"><h3>Co-Cookie Lead — Aubrey Buracchio</h3><p>Support the Cookie Lead with communication, deadline reminders, administrative tasks, and coordination across the team; provide backup when the Cookie Lead is unavailable.</p></div>
+<div class="role-entry"><h3>Booth Lead — Katrina Wu</h3><p>Manage approximately 10 booth reservations, family sign-ups, girl assignments, booth procedures, and booth-kit handoffs. Ensure all participating girls and parents understand booth rules, and communicate any specific rules or requirements for each booth location before their shift. Coordinate with booth partners on cookie supply and confirm booth results are recorded.</p></div>
+<div class="role-entry"><h3>Inventory Lead — Jessica Liu</h3><p>Coordinate initial and ongoing cupboard orders, consolidate family requests, arrange pickups and distribution, and help resolve girl-to-girl transfers or inventory discrepancies. Each family stores its own cookies; there is no central troop inventory.</p></div>
+<div class="role-entry"><h3>Finance Lead — Belinda Cho</h3><p>Organize booth starting change, track family payments and balances, reconcile booth cash and digital payments against reported sales, coordinate deposits, follow up on outstanding balances, and complete final financial reconciliation.</p></div>
+</section><section class="dash-stats"><div class="card"><h2>Troop overview</h2>
   <table><tr><th>Cookie</th><th>With girls</th><th>Customer sales</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
   </div>
   <div class="card"><h2>Money raised so far</h2>
   <table><tr><td>Customer payments collected</td><td>${money(customerPaid)}</td></tr><tr><td>Booth cash</td><td>${money(boothCash)}</td></tr><tr><td>Booth digital/card</td><td>${money(boothDig)}</td></tr><tr><td>Booth donations</td><td>${money(boothDon)}</td></tr><tr><td>Online sales</td><td>${money(onlineAmt)}</td></tr>
   <tr class="tot"><td>Total raised</td><td>${money(customerPaid+boothCash+boothDig+boothDon+onlineAmt)}</td></tr></table>
   <p class="muted">All physical inventory belongs to individual girls; there is no shared troop stock. Booth and online totals are lifetime boxes sold in each channel.</p>
-  </div>`;
+  </div></section></div>`;
 }
 
 function renderMine(){
@@ -215,13 +253,21 @@ function addCustomerPayment(id){
 function renderOrders(){
  const can=coord||girlUserId;
  const opts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
- const fields=state.cookies.filter(c=>c.key!=='share').map(c=>`<label>${c.name}</label><input type="number" min="0" class="orderQty" data-key="${c.key}" placeholder="0">`).join('');
- const rows=[...(state.cupboardOrders||[])].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td>${o.status}</td><td>${state.cookies.filter(c=>o.items?.[c.key]).map(c=>c.name+' × '+o.items[c.key]).join(', ')}</td><td>${o.notes||''}</td><td>${coord?`<button class="btn sec" onclick="setOrderStatus('${o.id}','ordered')">Ordered</button> <button class="btn sec" onclick="setOrderStatus('${o.id}','received')">Received by girl</button> <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
- const participation=coord?`<div class="card"><h2>Participation choices</h2>${state.girls.map(g=>`<label>${g.name}</label><select onchange="setParticipation('${g.id}',this.value)">${[['both','Individual + booths'],['individual','Individual only'],['booths','Booths only']].map(([v,l])=>`<option value="${v}" ${(state.participation||{})[g.id]===v?'selected':''}>${l}</option>`).join('')}</select>`).join('')}</div>`:'';
- return participation+`<div class="card"><h2>Girl cupboard requests & pickups</h2><p class="muted">No troop storage. All cupboard pickups are assigned directly to a girl. The Inventory Lead collects requests, places orders and coordinates pickup/distribution. Mark “Received by girl” only after physical handoff; that adds boxes to her inventory.</p>${can?`<label>Girl</label><select id="orderGirl">${opts}</select><label>Requested / pickup date</label><input type="date" id="orderDate" value="${new Date().toISOString().slice(0,10)}"><div class="grid2">${fields}</div><label>Notes</label><input id="orderNotes" placeholder="Initial order, cupboard restock, pickup arrangements"><button class="btn" onclick="addOrder()">Submit cookie request</button>`:'<p>Sign in to request cookies.</p>'}</div><div class="card"><h2>Order history</h2><table><tr><th>Date</th><th>Girl</th><th>Status</th><th>Cookies</th><th>Notes</th><th>Actions</th></tr>${rows||'<tr><td colspan="6">No requests yet</td></tr>'}</table></div>`;
+ const fields=state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="orderQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+ const rows=[...(state.cupboardOrders||[])].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td class="order-check">${['requested','ordered','received'].map((v,i)=>['requested','ordered','received'].indexOf(o.status)>=i?'✓':'—').join('</td><td class="order-check">')}</td><td>${state.cookies.filter(c=>o.items?.[c.key]).map(c=>c.name+' × '+o.items[c.key]).join(', ')}</td><td>${o.notes||''}</td><td>${(coord||girlUserId===o.girlId)&& (coord||o.status==='requested')?`<button class="btn sec" onclick="editOrder('${o.id}')">Edit</button>`:''} ${coord?`<button class="btn sec" onclick="setOrderStatus('${o.id}','ordered')">Ordered</button> <button class="btn sec" onclick="setOrderStatus('${o.id}','received')">Received by girl</button> <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
+ const participation='';
+ return participation+`<div class="card"><h2>Girl cupboard requests & pickups</h2><p class="muted">No troop storage. All cupboard pickups are assigned directly to a girl. The Inventory Lead collects requests, places orders and coordinates pickup/distribution. Mark “Received by girl” only after physical handoff; that adds boxes to her inventory.</p>${can?`<label>Girl</label><select id="orderGirl">${opts}</select><label>Requested / pickup date</label><input type="date" id="orderDate" value="${new Date().toISOString().slice(0,10)}"><div class="cookie-grid">${fields}</div><label>Notes</label><input id="orderNotes" placeholder="Initial order, cupboard restock, pickup arrangements"><button class="btn" onclick="addOrder()">Submit cookie request</button>`:'<p>Sign in to request cookies.</p>'}</div><div class="card"><h2>Order history</h2><table><tr><th>Date</th><th>Girl</th><th>Requested</th><th>Ordered</th><th>Received by girl</th><th>Cookies</th><th>Notes</th><th>Actions</th></tr>${rows||'<tr><td colspan="8">No requests yet</td></tr>'}</table></div>`;
 }
 function addOrder(){if(!coord&&!girlUserId)return;const girlId=document.getElementById('orderGirl').value,items={};document.querySelectorAll('.orderQty').forEach(e=>{let q=+e.value||0;if(q>0)items[e.dataset.key]=q});if(!Object.keys(items).length)return alert('Enter cookies requested.');state.cupboardOrders.push({id:uid(),girlId,items,date:document.getElementById('orderDate').value,notes:document.getElementById('orderNotes').value,status:'requested'});save();render()}
 function setOrderStatus(id,status){if(!coord)return;const o=state.cupboardOrders.find(x=>x.id===id);if(!o)return;if(o.status==='received'&&status!=='received')return alert('Received orders cannot be reversed here.');if(o.status==='received')return;if(status==='received'){if(!confirm('Confirm cookies were physically given to '+girlName(o.girlId)+'? This adds them to her inventory.'))return;state.girlInv[o.girlId]=state.girlInv[o.girlId]||{inv:{},paid:0};Object.entries(o.items).forEach(([k,q])=>state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)+q)}o.status=status;save();render()}
+function editOrder(id){
+ const o=state.cupboardOrders.find(x=>x.id===id);if(!o||(!coord&&(girlUserId!==o.girlId||o.status!=='requested')))return;
+ const revised=prompt('Edit quantities as cookie-key:boxes, separated by commas. Available keys: '+state.cookies.filter(c=>c.key!=='share').map(c=>c.key).join(', '),Object.entries(o.items).map(([k,v])=>k+':'+v).join(', '));if(revised===null)return;
+ const items={};for(const part of revised.split(',')){if(!part.trim())continue;const [k,v]=part.trim().split(':');if(!state.cookies.some(c=>c.key===k)||!Number.isInteger(+v)||+v<0)return alert('Invalid cookie key or quantity: '+part);if(+v)items[k]=+v;}if(!Object.keys(items).length)return alert('Enter at least one box.');
+ const note=prompt('Notes',o.notes||'');if(note===null)return;
+ if(o.status==='received'){for(const [k,q] of Object.entries(o.items))state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)-q;for(const [k,q] of Object.entries(items))state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)+q;}
+ o.items=items;o.notes=note;save();render();
+}
 function deleteOrder(id){if(!coord)return;const o=state.cupboardOrders.find(x=>x.id===id);if(!o||o.status==='received')return alert('Cannot delete a received order; correct through an inventory adjustment.');if(!confirm('Delete this request?'))return;state.cupboardOrders=state.cupboardOrders.filter(x=>x.id!==id);save();render()}
 
 function renderTransfers(){
@@ -229,7 +275,7 @@ function renderTransfers(){
   let entityOpts=permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   let cookieOpts=state.cookies.map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
   let list=[...state.transfers].reverse().map(t=>`<tr><td>${t.date}</td><td>${girlName(t.from)}&rarr;${girlName(t.to)}</td><td>${t.qty} ${state.cookies.find(c=>c.key===t.cookie)?.name||''}</td><td>${t.note||''}</td>
-    <td class="row-actions">${coord||t.createdByGirlId===girlUserId?`<button class="btn danger" onclick="delTransfer('${t.id}')">Delete</button>`:''}</td></tr>`).join('');
+    <td class="row-actions">${coord||t.createdByGirlId===girlUserId?`<button class="btn sec" onclick="editTransfer('${t.id}')">Edit</button> <button class="btn danger" onclick="delTransfer('${t.id}')">Delete</button>`:''}</td></tr>`).join('');
   const form=coord||girlUserId?`<div class="card"><h2>Record a transfer</h2>
   <p class="muted">Move cookies directly between girls. Either family can record the transfer.</p>
   <div class="grid2"><div><label>From</label><select id="tFrom">${entityOpts}</select></div><div><label>To</label><select id="tTo">${entityOpts}</select></div></div>
@@ -256,6 +302,17 @@ function addTransfer(){
   state.transfers.push({id:uid(),date,from,to,cookie,qty,note,createdByGirlId:coord?null:girlUserId});
   save(); render();
 }
+function editTransfer(id){const t=state.transfers.find(x=>x.id===id);if(!t||(!coord&&t.createdByGirlId!==girlUserId))return;
+ if(t.requestId&&!coord)return alert('Ask coordinator to edit a transfer linked to a request.');
+ const qtyText=prompt('Number of boxes',t.qty);if(qtyText===null)return;const qty=+qtyText;if(!Number.isInteger(qty)||qty<=0)return alert('Invalid quantity.');
+ const note=prompt('Note',t.note||'');if(note===null)return;
+ const date=prompt('Date (YYYY-MM-DD)',t.date);if(date===null)return;
+ const cookie=prompt('Cookie key: '+state.cookies.map(c=>c.key).join(', '),t.cookie);if(cookie===null)return;if(!state.cookies.some(c=>c.key===cookie))return alert('Invalid cookie key.');
+ const from=prompt('From girl name',girlName(t.from));if(from===null)return;const to=prompt('To girl name',girlName(t.to));if(to===null)return;
+ const fg=state.girls.find(g=>g.name.toLowerCase()===from.trim().toLowerCase()),tg=state.girls.find(g=>g.name.toLowerCase()===to.trim().toLowerCase());if(!fg||!tg||fg.id===tg.id)return alert('Choose two different valid girl names.');if(!coord&&fg.id!==girlUserId&&tg.id!==girlUserId)return alert('One side must be your girl.');
+ state.girlInv[t.from].inv[t.cookie]=(state.girlInv[t.from].inv[t.cookie]||0)+t.qty;state.girlInv[t.to].inv[t.cookie]=(state.girlInv[t.to].inv[t.cookie]||0)-t.qty;
+ state.girlInv[fg.id].inv[cookie]=(state.girlInv[fg.id].inv[cookie]||0)-qty;state.girlInv[tg.id].inv[cookie]=(state.girlInv[tg.id].inv[cookie]||0)+qty;
+ Object.assign(t,{from:fg.id,to:tg.id,cookie,qty,note,date});save();render();}
 function delTransfer(id){
   const t=state.transfers.find(x=>x.id===id); if(!t)return;
   if(!coord&&t.createdByGirlId!==girlUserId)return;
@@ -351,32 +408,31 @@ function boothCreditForGirl(girl){
 }
 function renderBooths(){
   let girlChks=state.girls.map(g=>`<label class="chk"><input type="checkbox" value="${g.name}" class="boothGirlChk"> ${g.name}</label>`).join('');
-  let cookieInputs=state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="boothCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+  let cookieInputs=state.cookies.map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="boothCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
   let creditRows=state.girls.map(g=>{const x=boothCreditForGirl(g);return `<tr><td>${g.name}</td><td>${x.booths}</td><td>${x.boxes.toFixed(1)}</td><td>${money(x.amount)}</td></tr>`}).join('');
-  let list=[...state.booths].reverse().map(b=>`<div class="card"><b>${b.date} &middot; ${b.location}</b> <span class="small">${b.time||''}</span><br>
-    <span class="small">Girls: ${b.girls.join(', ')||'—'}</span><br>
-    <span class="small">Sold: ${state.cookies.map(c=>b.sales[c.key]?`${c.name} ${b.sales[c.key]}`:null).filter(Boolean).join(', ')||'none entered'}</span><br>
-    <span class="small">Cash ${money(b.cash)} &middot; Digital/card ${money(b.digital)} &middot; Donations ${money(b.donations)}${b.notes?' &middot; '+b.notes:''}</span><br>
-    <span class="small">Credit per participating girl: ${(state.cookies.reduce((s,c)=>s+(+b.sales?.[c.key]||0),0)/(b.girls.length||1)).toFixed(1)} boxes &middot; ${money(((+b.cash||0)+(+b.digital||0)+(+b.donations||0))/(b.girls.length||1))}</span>
-    ${coord?`<div class="row-actions" style="margin-top:6px"><button class="btn danger" onclick="delBooth('${b.id}')">Delete</button></div>`:''}
-  </div>`).join('');
+  const boothHeaders=state.cookies.map(c=>`<th title="${c.name}">${c.name}</th>`).join('');
+  const list=[...state.booths].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(b=>{
+    const total=state.cookies.reduce((n,c)=>n+(+b.sales?.[c.key]||0),0);
+    const amounts=state.cookies.map(c=>`<td class="num">${+b.sales?.[c.key]||0}</td>`).join('');
+    return `<tr><td>${b.date||''}</td><td>${escapeText(b.location||'')}</td><td>${escapeText(b.time||'')}</td><td>${(b.girls||[]).map(escapeText).join(', ')}</td>${amounts}<td class="num"><b>${total}</b></td><td class="num">${money(+b.cash||0)}</td><td class="num">${money(+b.digital||0)}</td><td class="num">${money(+b.donations||0)}</td><td>${escapeText(b.notes||'')}${b.discrepancies?.length?`<div class="warn">⚠ ${b.discrepancies.map(escapeText).join('; ')}</div>`:''}</td><td>${coord?`<button class="btn sec" onclick="editBooth('${b.id}')">Edit</button><button class="btn danger" onclick="delBooth('${b.id}')">Delete</button>`:''}</td></tr>`;
+  }).join('');
   return `<div class="card"><h2>Cumulative booth credit by girl</h2><p class="muted">Each booth's boxes and collected dollars are divided evenly among all participating girls listed for that booth.</p><table><tr><th>Girl Scout</th><th>Booths</th><th>Credited boxes</th><th>Credited sales</th></tr>${creditRows}</table></div><div class="card"><h2>Log a booth sale</h2>
   <p class="muted">Whoever ran the booth fills this in right after — no login needed.</p>
   <div class="grid2"><div><label>Date</label><input type="date" id="bDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Time</label><input id="bTime" placeholder="e.g. 1:30-3:30pm"></div></div>
   <label>Location</label><input id="bLoc" placeholder="e.g. Stater Bros - Kensington">
   <label>Girls at this booth</label>${girlChks}
-  <h3>Boxes sold by type</h3><p class="muted">Enter total sold at the booth, then allocate the physical boxes sold to each participating girl's inventory below. Sales credit is still split evenly.</p>${cookieInputs}
+  <h3>Boxes sold by type</h3><p class="muted">Enter total sold at the booth, then allocate the physical boxes sold to each participating girl's inventory below. Sales credit is still split evenly.</p><div class="cookie-grid">${cookieInputs}</div>
   <h3>Physical inventory used by each girl</h3><div id="boothAllocation"></div><button type="button" class="btn sec" onclick="showBoothAllocation()">Set / refresh girl inventory allocations</button>
   <div class="grid2"><div><label>Cash collected</label><input type="number" id="bCash" min="0" step="0.01" placeholder="0.00"></div><div><label>Digital/card collected</label><input type="number" id="bDigital" min="0" step="0.01" placeholder="0.00"></div></div>
   <label>Cash donations collected</label><input type="number" id="bDon" min="0" step="0.01" placeholder="0.00">
-  <label>Notes</label><textarea id="bNotes" rows="2" placeholder="anything the coordinator should know"></textarea>
+  <label class="chk"><input type="checkbox" id="bOverride"> Override inventory / boxes-sold discrepancy and flag this booth</label><label>Notes</label><textarea id="bNotes" rows="2" placeholder="anything the coordinator should know"></textarea>
   <button class="btn" onclick="addBooth()">Submit booth report</button>
   </div>
-  <h2>Past booths</h2>${list||'<p class="muted">No booth sales logged yet.</p>'}`;
+  <div class="card"><h2 class="past-booths-heading">Past booths</h2><p class="muted">Scroll horizontally to see every cookie type, totals, payment amounts, and notes.</p><div class="table-scroll"><table class="booth-history"><thead><tr><th>Date</th><th>Location</th><th>Time</th><th>Girls</th>${boothHeaders}<th>Total boxes</th><th>Cash</th><th>Digital/card</th><th>Donations</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${list||`<tr><td colspan="${state.cookies.length+10}">No booth sales logged yet.</td></tr>`}</tbody></table></div></div>`;
 }
 function showBoothAllocation(){
  const girls=[...document.querySelectorAll('.boothGirlChk:checked')].map(e=>e.value);
- const html=girls.map(name=>{const g=state.girls.find(x=>x.name===name);return `<div class="card"><b>${name} — boxes physically sold from her stock</b>${state.cookies.filter(c=>c.key!=='share').map(c=>`<label>${c.name} (on hand: ${state.girlInv[g.id]?.inv?.[c.key]||0})</label><input class="boothAlloc" type="number" min="0" data-girl="${g.id}" data-cookie="${c.key}" value="0">`).join('')}</div>`}).join('');
+ const html=girls.map(name=>{const g=state.girls.find(x=>x.name===name);return `<div class="card"><b>${name} — boxes physically sold from her stock</b><div class="cookie-grid">${state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label>${c.name} (${state.girlInv[g.id]?.inv?.[c.key]||0})</label><input class="boothAlloc" type="number" min="0" data-girl="${g.id}" data-cookie="${c.key}" value="0"></div>`).join('')}</div></div>`}).join('');
  document.getElementById('boothAllocation').innerHTML=html||'<p>Select girls first.</p>';
 }
 function addBooth(){
@@ -388,13 +444,22 @@ function addBooth(){
   document.querySelectorAll('.boothCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){sales[el.dataset.key]=q;}});
   const allocations={};document.querySelectorAll('.boothAlloc').forEach(el=>{const q=+el.value||0;if(q>0){allocations[el.dataset.girl]=allocations[el.dataset.girl]||{};allocations[el.dataset.girl][el.dataset.cookie]=q;}});
   if(!document.querySelectorAll('.boothAlloc').length)return alert('Click Set / refresh girl inventory allocations before submitting.');
-  for(const c of state.cookies){if(c.key==='share')continue;const assigned=Object.values(allocations).reduce((sum,a)=>sum+(a[c.key]||0),0);if(assigned!==(sales[c.key]||0))return alert('Physical allocations for '+c.name+' ('+assigned+') must match sold total ('+(sales[c.key]||0)+').');}
+  const discrepancies=[];for(const c of state.cookies){if(c.key==='share')continue;const assigned=Object.values(allocations).reduce((sum,a)=>sum+(a[c.key]||0),0);if(assigned!==(sales[c.key]||0))discrepancies.push(c.name+': sold '+(sales[c.key]||0)+', allocated '+assigned);}
+  if(discrepancies.length&&!document.getElementById('bOverride').checked)return alert('Discrepancy detected:\n'+discrepancies.join('\n')+'\nCheck Override discrepancy to save with a warning.');
   for(const [id,items] of Object.entries(allocations))for(const [k,q] of Object.entries(items))if((state.girlInv[id]?.inv?.[k]||0)<q)return alert(girlName(id)+' has insufficient '+k+' inventory. Record cupboard pickups or transfers first.');
   for(const [id,items] of Object.entries(allocations))for(const [k,q] of Object.entries(items))state.girlInv[id].inv[k]-=q;
   const cash=+document.getElementById('bCash').value||0, digital=+document.getElementById('bDigital').value||0, donations=+document.getElementById('bDon').value||0, notes=document.getElementById('bNotes').value;
-  state.booths.push({id:uid(),date,time,location,girls,sales,allocations,cash,digital,donations,notes});
+  state.booths.push({id:uid(),date,time,location,girls,sales,allocations,cash,digital,donations,notes,discrepancies,override:discrepancies.length>0});
   save(); render();
 }
+function editBooth(id){if(!coord)return;const b=state.booths.find(x=>x.id===id);if(!b)return;
+ const date=prompt('Date',b.date);if(date===null)return;const location=prompt('Location',b.location);if(location===null)return;
+ const salesText=prompt('Boxes sold, cookie-key:boxes comma separated',Object.entries(b.sales).map(([k,v])=>k+':'+v).join(', '));if(salesText===null)return;
+ const sales={};for(const item of salesText.split(',')){if(!item.trim())continue;const [k,v]=item.trim().split(':');if(!state.cookies.some(c=>c.key===k)||!Number.isInteger(+v)||+v<0)return alert('Invalid cookie quantity.');if(+v)sales[k]=+v;}
+ const cash=prompt('Cash collected',b.cash);if(cash===null)return;const digital=prompt('Digital/card collected',b.digital);if(digital===null)return;const donations=prompt('Donations',b.donations);if(donations===null)return;const notes=prompt('Notes',b.notes||'');if(notes===null)return;
+ const discrepancies=state.cookies.filter(c=>c.key!=='share').map(c=>{const a=Object.values(b.allocations||{}).reduce((v,x)=>v+(+x[c.key]||0),0);return a!==(sales[c.key]||0)?c.name+': sold '+(sales[c.key]||0)+', allocated '+a:null}).filter(Boolean);
+ if(discrepancies.length&&!confirm('This edit has a discrepancy. Save and flag?\n'+discrepancies.join('\n')))return;
+ Object.assign(b,{date,location,sales,cash:+cash||0,digital:+digital||0,donations:+donations||0,notes,discrepancies,override:!!discrepancies.length});save();render();}
 function delBooth(id){
   if(!coord)return;
   const b=state.booths.find(x=>x.id===id); if(!b)return;
@@ -407,13 +472,13 @@ function delBooth(id){
 function renderOnline(){
   const permittedGirls=coord?state.girls:state.girls.filter(g=>g.id===girlUserId);
   let girlOpts=permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
-  let cookieInputs=state.cookies.map(c=>`<div class="grid2"><label>${c.name}</label><input type="number" min="0" class="onlineCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+  let cookieInputs=state.cookies.map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="onlineCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
   let list=[...state.online].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td>${state.cookies.map(c=>o.items[c.key]?`${c.name} ${o.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${money(o.amount)}</td><td>${o.delivered?'Girl delivery':'Shipped'}</td>
-   <td>${coord||o.createdByGirlId===girlUserId?`<button class="btn danger" onclick="delOnline('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
+   <td>${coord||o.createdByGirlId===girlUserId?`<button class="btn sec" onclick="editOnline('${o.id}')">Edit</button> <button class="btn danger" onclick="delOnline('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
   const form=coord||girlUserId?`<div class="card"><h2>Log a Digital Cookie / online order</h2>
   <label>Girl Scout</label><select id="oGirl">${girlOpts}</select>
   <label>Date</label><input type="date" id="oDate" value="${new Date().toISOString().slice(0,10)}">
-  <h3>Boxes (if known)</h3>${cookieInputs}
+  <h3>Boxes (if known)</h3><div class="cookie-grid">${cookieInputs}</div>
   <label>Order total ($)</label><input type="number" id="oAmt" min="0" step="0.01">
   <label class="chk"><input type="checkbox" id="oDelivered"> I'm hand-delivering this order (subtract from my on-hand inventory)</label>
   <label>Note</label><input id="oNote" placeholder="optional">
@@ -430,6 +495,14 @@ function addOnline(){
   state.online.push({id:uid(),girlId,date,items,amount,delivered,note,createdByGirlId:coord?null:girlUserId});
   save(); render();
 }
+function editOnline(id){const o=state.online.find(x=>x.id===id);if(!o||(!coord&&o.createdByGirlId!==girlUserId))return;
+ const date=prompt('Date',o.date);if(date===null)return;const amount=prompt('Amount ($)',o.amount);if(amount===null)return;
+ const itemsText=prompt('Cookie-key:boxes comma separated',Object.entries(o.items).map(([k,v])=>k+':'+v).join(', '));if(itemsText===null)return;
+ const items={};for(const part of itemsText.split(',')){if(!part.trim())continue;const [k,v]=part.trim().split(':');if(!state.cookies.some(c=>c.key===k)||!Number.isInteger(+v)||+v<0)return alert('Invalid cookie quantity');if(+v)items[k]=+v;}
+ const delivered=confirm('OK = girl delivery (deduct inventory). Cancel = shipped (no inventory deduction).');const note=prompt('Note',o.note||'');if(note===null)return;
+ if(o.delivered)for(const [k,q] of Object.entries(o.items))state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)+q;
+ if(delivered)for(const [k,q] of Object.entries(items))state.girlInv[o.girlId].inv[k]=(state.girlInv[o.girlId].inv[k]||0)-q;
+ Object.assign(o,{date,amount:+amount||0,items,delivered,note});save();render();}
 function delOnline(id){
   const o=state.online.find(x=>x.id===id); if(!o)return;
   if(!coord&&o.createdByGirlId!==girlUserId)return;
@@ -439,7 +512,7 @@ function delOnline(id){
   save(); render();
 }
 
-function setParticipation(id,value){if(!coord)return;state.participation=state.participation||{};state.participation[id]=value;save();render()}
+
 function renderCoord(){
   if(!coord)return `<div class="card"><h2>Coordinator area</h2><p class="muted">Unlock with the button in the top right to manage the roster, prices, payments, and delete entries.</p></div>`;
   let girlRows=state.girls.map(g=>{const rec=state.girlInv[g.id]||{paid:0};
