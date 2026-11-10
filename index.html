@@ -470,15 +470,15 @@ function renderBooths(){
   const list=[...state.booths].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(b=>{
     const total=state.cookies.reduce((n,c)=>n+(+b.sales?.[c.key]||0),0);
     const amounts=state.cookies.filter(c=>c.key!=='share').map(c=>`<td class="num">${+b.sales?.[c.key]||0}</td>`).join('');
-    return `<tr><td>${b.date||''}</td><td>${escapeText(b.location||'')}</td><td>${escapeText(b.time||'')}</td><td>${(b.girls||[]).map(escapeText).join(', ')}</td>${amounts}<td class="num"><b>${total}</b></td><td class="num">${money(+b.cash||0)}</td><td class="num">${money(+b.digital||0)}</td><td class="num">${money(+b.donations||0)}</td><td>${escapeText(b.notes||'')}${b.discrepancies?.length?`<div class="warn">⚠ ${b.discrepancies.map(escapeText).join('; ')}</div>`:''}</td><td>${coord?`<button class="btn sec" onclick="editBooth('${b.id}')">Edit</button><button class="btn danger" onclick="delBooth('${b.id}')">Delete</button>`:''}</td></tr>`;
+    return `<tr><td>${b.date||''}</td><td>${escapeText(b.location||'')}</td><td>${escapeText(b.time||'')}</td><td>${(b.girls||[]).map(escapeText).join(', ')}</td>${amounts}<td class="num"><b>${total}</b></td><td class="num">${money(+b.cash||0)}</td><td class="num">${money(+b.digital||0)}</td><td class="num">${money(+b.donations||0)}</td><td>${b.contributions?`<details><summary>Contributions / returns</summary>${Object.entries(b.contributions).map(([gid,items])=>`<div><strong>${escapeText(girlName(gid))}</strong>: ${Object.entries(items).filter(([k,v])=>v.brought||v.used).map(([k,v])=>`${escapeText(k)} ${v.brought} brought / ${v.used} sold / ${v.brought-v.used} returned`).join('; ')||'No boxes'}</div>`).join('')}</details>`:''}${escapeText(b.notes||'')}${b.discrepancies?.length?`<div class="warn">⚠ ${b.discrepancies.map(escapeText).join('; ')}</div>`:''}</td><td>${coord?`<button class="btn sec" onclick="editBooth('${b.id}')">Edit</button><button class="btn danger" onclick="delBooth('${b.id}')">Delete</button>`:''}</td></tr>`;
   }).join('');
-  return `<div class="card"><h2>Cumulative booth credit by girl</h2><p class="muted">Each booth's boxes and collected dollars are divided evenly among all participating girls listed for that booth.</p><table><tr><th>Girl Scout</th><th>Booths</th><th>Credited boxes</th><th>Credited sales</th></tr>${creditRows}</table></div><div class="card"><h2>Log a booth sale</h2>
+  return `<div class="card"><h2>Cumulative booth credit by girl</h2><p class="muted">Sales credit is split evenly among participating girls, regardless of which girl supplied the physical boxes. Official credit must still be entered in Digital Cookie/eBudde.</p><table><tr><th>Girl Scout</th><th>Booths</th><th>Credited boxes</th><th>Credited sales</th></tr>${creditRows}</table></div><div class="card"><h2>Log a booth sale</h2>
   <p class="muted">Whoever ran the booth fills this in right after — no login needed.</p>
   <div class="grid2"><div><label>Date</label><input type="date" id="bDate" value="${new Date().toISOString().slice(0,10)}"></div><div><label>Time</label><input id="bTime" placeholder="e.g. 1:30-3:30pm"></div></div>
   <label>Location</label><input id="bLoc" placeholder="e.g. Stater Bros - Kensington">
   <label>Girls at this booth</label>${girlChks}
-  <h3>Boxes sold by type</h3><p class="muted">Enter total sold at the booth, then allocate the physical boxes sold to each participating girl's inventory below. Sales credit is still split evenly.</p><div class="cookie-grid">${cookieInputs}</div>
-  <h3>Physical inventory used by each girl</h3><div id="boothAllocation"></div><button type="button" class="btn sec" onclick="showBoothAllocation()">Set / refresh girl inventory allocations</button>
+  <h3>Boxes sold by type</h3><p class="muted">Enter total sold at the booth, then record how many boxes each girl brought and how many of those were sold below. Sales credit is still split evenly.</p><div class="cookie-grid">${cookieInputs}</div>
+  <h3>Cookies contributed to this booth</h3><p class="muted">Select the girls above, then enter how many boxes of each variety each girl <strong>brought</strong> and how many were <strong>sold from her stock</strong>. The remainder goes back to that girl. Only sold boxes are deducted from her tracked inventory; no separate troop transfer is needed. Booth sales credit is split equally among all participating girls regardless of whose stock was used.</p><div id="boothAllocation"></div><button type="button" class="btn sec" onclick="showBoothAllocation()">Set up / refresh contributions</button><p class="muted">If you refresh the contribution form, previously entered quantities will be preserved for girls still selected.</p>
   <div class="grid2"><div><label>Cash collected</label><input type="number" id="bCash" min="0" step="0.01" placeholder="0.00"></div><div><label>Digital/card collected</label><input type="number" id="bDigital" min="0" step="0.01" placeholder="0.00"></div></div>
   <label>Cash donations collected</label><input type="number" id="bDon" min="0" step="0.01" placeholder="0.00">
   <label class="chk"><input type="checkbox" id="bOverride"> Override inventory / boxes-sold discrepancy and flag this booth</label><label>Notes</label><textarea id="bNotes" rows="2" placeholder="anything the coordinator should know"></textarea>
@@ -488,8 +488,13 @@ function renderBooths(){
 }
 function showBoothAllocation(){
  const girls=[...document.querySelectorAll('.boothGirlChk:checked')].map(e=>e.value);
- const html=girls.map(name=>{const g=state.girls.find(x=>x.name===name);return `<div class="card"><b>${name} — boxes physically sold from her stock</b><div class="cookie-grid">${state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label title="${c.name}">${({adv:"ADV",exp:"EXP",lem:"LEM",tre:"TRE",tm:"THM",pbp:"PBP",cdl:"CDL",pbs:"PBS",gf:"CCC",spk:"SPA",pp:"PAL"})[c.key]||c.name} (${state.girlInv[g.id]?.inv?.[c.key]||0})</label><input class="boothAlloc" type="number" min="0" data-girl="${g.id}" data-cookie="${c.key}" value="0"></div>`).join('')}</div></div>`}).join('');
- document.getElementById('boothAllocation').innerHTML=html||'<p>Select girls first.</p>';
+ const old={};document.querySelectorAll('.boothContribution').forEach(el=>{old[el.dataset.girl+'|'+el.dataset.cookie+'|'+el.dataset.kind]=el.value;});
+ const abbr={adv:'ADV',exp:'EXP',lem:'LEM',tre:'TRE',tm:'THM',pbp:'PBP',cdl:'CDL',pbs:'PBS',gf:'CCC',spk:'SPA',pp:'PAL'};
+ const html=girls.map(name=>{const g=state.girls.find(x=>x.name===name);return `<div class="card"><h4>${escapeText(name)} — contributed boxes</h4><div class="table-scroll"><table><thead><tr><th>Cookie</th><th>Brought</th><th>Sold from her stock</th><th>Returned (calculated)</th></tr></thead><tbody>${state.cookies.filter(c=>c.key!=='share').map(c=>{const key=g.id+'|'+c.key;const brought=old[key+'|brought']??'0',used=old[key+'|used']??'0';return `<tr><td>${abbr[c.key]||escapeText(c.name)}</td><td><input aria-label="${escapeText(name)} ${escapeText(c.name)} brought" class="boothContribution" type="number" min="0" step="1" data-kind="brought" data-girl="${g.id}" data-cookie="${c.key}" value="${escapeText(brought)}" oninput="updateBoothReturns()" style="width:85px"></td><td><input aria-label="${escapeText(name)} ${escapeText(c.name)} sold" class="boothContribution" type="number" min="0" step="1" data-kind="used" data-girl="${g.id}" data-cookie="${c.key}" value="${escapeText(used)}" oninput="updateBoothReturns()" style="width:85px"></td><td class="boothReturned" data-girl="${g.id}" data-cookie="${c.key}">0</td></tr>`}).join('')}</tbody></table></div></div>`}).join('');
+ document.getElementById('boothAllocation').innerHTML=html||'<p>Select girls first.</p>';updateBoothReturns();
+}
+function updateBoothReturns(){
+ document.querySelectorAll('.boothReturned').forEach(el=>{const gid=el.dataset.girl,k=el.dataset.cookie;const b=document.querySelector(`.boothContribution[data-girl="${gid}"][data-cookie="${k}"][data-kind="brought"]`);const u=document.querySelector(`.boothContribution[data-girl="${gid}"][data-cookie="${k}"][data-kind="used"]`);const remainder=(+b.value||0)-(+u.value||0);el.textContent=remainder>=0?remainder:'Invalid';el.style.color=remainder<0?'#b91c1c':'';});
 }
 function addBooth(){
   const date=document.getElementById('bDate').value, time=document.getElementById('bTime').value, location=document.getElementById('bLoc').value;
@@ -498,14 +503,26 @@ function addBooth(){
   if(!girls.length){alert('Select at least one participating Girl Scout so the booth totals can be divided correctly.');return}
   const sales={};
   document.querySelectorAll('.boothCookieQty').forEach(el=>{const q=+el.value||0; if(q>0){sales[el.dataset.key]=q;}});
-  const allocations={};document.querySelectorAll('.boothAlloc').forEach(el=>{const q=+el.value||0;if(q>0){allocations[el.dataset.girl]=allocations[el.dataset.girl]||{};allocations[el.dataset.girl][el.dataset.cookie]=q;}});
-  if(!document.querySelectorAll('.boothAlloc').length)return alert('Click Set / refresh girl inventory allocations before submitting.');
+  const allocations={},contributions={};
+  const contributionInputs=[...document.querySelectorAll('.boothContribution')];
+  if(!contributionInputs.length)return alert('Click Set up / refresh contributions before submitting.');
+  for(const el of contributionInputs){
+   const q=Number(el.value||0);
+   if(!Number.isSafeInteger(q)||q<0)return alert('Contributed and sold quantities must be whole numbers of boxes, zero or greater.');
+   const id=el.dataset.girl,k=el.dataset.cookie;
+   contributions[id]=contributions[id]||{};contributions[id][k]=contributions[id][k]||{brought:0,used:0};
+   contributions[id][k][el.dataset.kind]=q;
+  }
+  for(const [id,items] of Object.entries(contributions))for(const [k,v] of Object.entries(items)){
+   if(v.used>v.brought)return alert(girlName(id)+' cannot sell more '+k+' boxes than she brought.');
+   if(v.used){allocations[id]=allocations[id]||{};allocations[id][k]=v.used;}
+  }
   const discrepancies=[];for(const c of state.cookies){if(c.key==='share')continue;const assigned=Object.values(allocations).reduce((sum,a)=>sum+(a[c.key]||0),0);if(assigned!==(sales[c.key]||0))discrepancies.push(c.name+': sold '+(sales[c.key]||0)+', allocated '+assigned);}
   if(discrepancies.length&&!document.getElementById('bOverride').checked)return alert('Discrepancy detected:\n'+discrepancies.join('\n')+'\nCheck Override discrepancy to save with a warning.');
-  for(const [id,items] of Object.entries(allocations))for(const [k,q] of Object.entries(items))if((state.girlInv[id]?.inv?.[k]||0)<q)return alert(girlName(id)+' has insufficient '+k+' inventory. Record cupboard pickups or transfers first.');
+  for(const [id,items] of Object.entries(allocations))for(const [k,q] of Object.entries(items))if((state.girlInv[id]?.inv?.[k]||0)<q)return alert(girlName(id)+' has insufficient tracked '+k+' inventory. Record cupboard pickups or transfers first.');
   for(const [id,items] of Object.entries(allocations))for(const [k,q] of Object.entries(items))state.girlInv[id].inv[k]-=q;
   const cash=+document.getElementById('bCash').value||0, digital=+document.getElementById('bDigital').value||0, donations=+document.getElementById('bDon').value||0, notes=document.getElementById('bNotes').value;
-  state.booths.push({id:uid(),date,time,location,girls,sales,allocations,cash,digital,donations,notes,discrepancies,override:discrepancies.length>0});
+  state.booths.push({id:uid(),date,time,location,girls,sales,allocations,contributions,cash,digital,donations,notes,discrepancies,override:discrepancies.length>0});
   save(); render();
 }
 function editBooth(id){if(!coord)return;const b=state.booths.find(x=>x.id===id);if(!b)return;
