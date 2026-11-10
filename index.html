@@ -80,6 +80,13 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 .cookie-line label{flex:0 1 auto;width:auto;min-width:0;margin:0;line-height:1.25}
 .cookie-line input[type="number"]{flex:0 0 57px;width:57px;min-width:0;margin:0;padding:3px 4px;text-align:center}
 @media(max-width:480px){.cookie-line{flex-wrap:nowrap}.cookie-line input[type="number"]{flex-basis:48px;width:48px}.cookie-grid{column-gap:8px}}
+
+/* Cupboard request quantities: consistent left-hand input column and readable labels. */
+.cookie-grid:has(.order-cookie-line){grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:8px;margin:12px 0 16px}
+.order-cookie-line{display:grid;grid-template-columns:68px minmax(0,1fr);align-items:center;justify-content:start;gap:10px;min-width:0;padding:0}
+.order-cookie-line input[type="number"]{box-sizing:border-box;width:68px;min-width:0;max-width:68px;height:38px;margin:0;padding:6px 8px;text-align:center;font-size:14px}
+.order-cookie-line label{font-size:13px;line-height:1.3;margin:0;min-width:0;overflow-wrap:anywhere}
+@media(max-width:600px){.cookie-grid:has(.order-cookie-line){grid-template-columns:1fr;row-gap:7px}.order-cookie-line{grid-template-columns:68px minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -183,6 +190,22 @@ let activeTab='dash', selectedGirlId=null, editingReceiptId=null;
 function setTab(t){activeTab=t;render();}
 function setMineGirl(id){selectedGirlId=id;render();}
 
+const TAB_GUIDES={
+ dash:['Dashboard','Your starting point for the cookie season. Check troop activity, outstanding cupboard orders, and open transfer requests. The timeline is a 2026 reference; confirm 2027 dates with council.','Review the summary, then open the relevant tab to take action.'],
+ team:['Cookie Team','Find the volunteer responsible for each part of the program, including cupboard pickups, booths, payments, and overall coordination.','Contact the appropriate lead when you need help; this page is informational.'],
+ orders:['Cupboard Orders','Request additional cookie boxes for your Girl Scout. The Inventory Lead coordinates cupboard orders and pickup. Each number is a box count, not a dollar amount.','Enter quantities beside the cookie names, choose the girl and date, then submit. Track Requested → Ordered → Received by girl in Order History. Only mark received after the boxes are handed over.'],
+ requests:['Transfer Requests','Use this page when a family needs cookies or has extra boxes available. Requests can be filled in part or in full by another family.','Post “I need” or “I can give,” then use Fulfill on an open request when boxes physically change hands. Each fulfillment is automatically added to Transfer History; do not log it twice.'],
+ transfers:['Transfer History','This is the record of boxes moved between Girl Scouts. Transfers fulfilled from the Requests tab appear here automatically.','Use Record a transfer only for a direct exchange that did not start as a request. Check the girl giving, girl receiving, cookie type, and box quantity before saving.'],
+ booths:['Booth Sales','Track each cookie booth’s participants, boxes sold, money collected, and any discrepancies. Booth credit is split evenly among listed participating girls.','After a booth, enter the date, location, girls, cookie counts, and payments. Check the saved entry for accuracy; coordinators can correct it later.'],
+ payments:['Payments','Record money a family has turned in to the troop, such as cash or electronic payments. This is a troop collection log, not a customer checkout system.','Select the Girl Scout, enter the payment date, amount, and method, and add a note if useful. Avoid including sensitive account information.'],
+ resources:['Resources','Reference documents for cookie sales, booths, safety, and program procedures. Most files currently linked here are from 2026.','Open a document to review or print it, and verify deadlines and rules against the current 2027 council materials.'],
+ export:['Copy to Sheets','Coordinators can copy a table of website records into Google Sheets. This is a one-way manual copy: there is no live connection or automatic sync.','Choose a record type, click Copy table, then paste into cell A1 of the appropriate Google Sheet tab. Repeat whenever you want a fresh snapshot.'],
+ coord:['Coordinator','Coordinator-only tools for roster PINs, cookie prices, backups, and resetting test transactions. Changes to shared data affect everyone using the site.','Save a JSON backup before resetting or importing data. Check changes carefully, especially PINs and financial entries.']
+};
+function renderTabGuide(tab){
+ const g=TAB_GUIDES[tab];if(!g)return '';
+ return `<section class="card" style="border-left:4px solid var(--accent,#567a63);margin-bottom:14px"><h2 style="margin-top:0">How to use ${escapeText(g[0])}</h2><p style="margin:8px 0">${escapeText(g[1])}</p><p class="muted" style="margin:8px 0 0"><strong>What to do:</strong> ${escapeText(g[2])}</p></section>`;
+}
 function render(){
   if(!ready)return;
   document.getElementById('coordBtn').textContent='Coordinator: '+(coord?'Unlocked':'Locked');
@@ -192,7 +215,7 @@ function render(){
   girlBtn.className=signedGirl?'on':'';
   const nav=document.getElementById('tabs');
   nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('');
-  document.getElementById('app').innerHTML=({dash:renderDash,team:renderTeam,mine:renderMine,orders:renderOrders,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,resources:renderResources,export:renderSheetExport,coord:renderCoord}[activeTab])();
+  document.getElementById('app').innerHTML=renderTabGuide(activeTab)+({dash:renderDash,team:renderTeam,mine:renderMine,orders:renderOrders,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,resources:renderResources,export:renderSheetExport,coord:renderCoord}[activeTab])();
 }
 
 function totalGirlInv(){let t=zeroMap(); state.girls.forEach(g=>{let inv=invOf(state.girlInv[g.id]?.inv);state.cookies.forEach(c=>t[c.key]+=inv[c.key]||0)}); return t}
@@ -203,11 +226,23 @@ function totalOnlineByType(){let t=zeroMap(); state.online.forEach(o=>state.cook
 function escapeText(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function renderResources(){return `<div class="card"><h2>📚 Resources</h2><p class="muted">2026 reference materials. Replace outdated files with current council documents before the 2027 season. Resource files should be uploaded in the same GitHub folder as index.html.</p><div class="resources-grid">${RESOURCE_FILES.map(f=>`<a class="resource-link" href="${f.url}" target="_blank" rel="noopener"><span>📄 ${escapeText(f.name)}</span><small>${f.kind} · 2026 reference ↗</small></a>`).join('')}</div></div>`;}
 function renderDash(){
- const participating=state.girls.filter(g=>isParticipating(g));
  const open=(state.transferRequests||[]).filter(r=>r.status!=='fulfilled'&&r.status!=='closed').length;
  const pending=(state.cupboardOrders||[]).filter(o=>o.status!=='received').length;
- const boothBoxes=(state.booths||[]).reduce((n,b)=>n+Object.values(b.sales||{}).reduce((a,v)=>a+(+v||0),0),0);
- return `<div class="card"><h2>2027 Troop Cookie Coordination</h2><p class="muted">Use this site to coordinate cupboard pickups, cookie transfers, booth sales and payments. Families should continue tracking their own inventory and customer/online sales in Digital Cookie. Google Sheets is manual copy/paste only.</p><div class="grid2"><div><h3>${participating.length} participating Girl Scouts</h3><p class="muted">${participating.map(g=>escapeText(g.name)).join(', ')}</p></div><div><h3>${state.booths.length} booths recorded</h3><p class="muted">${boothBoxes} boxes recorded at booths</p></div><div><h3>${pending} cupboard orders pending</h3><button class="btn sec" onclick="setTab('orders')">Cupboard Orders</button></div><div><h3>${open} transfer requests open</h3><button class="btn sec" onclick="setTab('requests')">Transfer Requests</button></div></div></div><div class="card"><h2>2027 schedule</h2><p class="muted">Dates are not yet confirmed for 2027. Refer to the Cookie Team and Resources tabs for coordination; the archived 2026 resources are reference only.</p></div>`;
+ const booth=totalBoothsByType(),troop=invOf(state.troopInv||{});
+ const received=zeroMap(),distributed=zeroMap();
+ // A received cupboard order is recorded as delivered directly to its named girl.
+ (state.cupboardOrders||[]).filter(o=>o.status==='received').forEach(o=>{
+  state.cookies.forEach(c=>{const q=Number(o.items?.[c.key])||0;received[c.key]+=q;if(o.girlId)distributed[c.key]+=q;});
+ });
+ const varieties=state.cookies.filter(c=>c.key!=='share');
+ const total=m=>varieties.reduce((n,c)=>n+(Number(m[c.key])||0),0);
+ const cookieRows=varieties.map(c=>`<tr><td>${escapeText(c.name)}</td><td>${received[c.key]||0}</td><td>${distributed[c.key]||0}</td><td>${troop[c.key]||0}</td><td>${booth[c.key]||0}</td></tr>`).join('');
+ return `<div class="card"><h2>2027 Troop Cookie Coordination</h2><p class="muted">Coordinate cupboard pickups, transfers, booth sales and payments here. Families track customer sales in Digital Cookie; Google Sheets is manual copy/paste only.</p><div class="grid2"><div><h3>${(state.booths||[]).length} booths recorded</h3><p class="muted">${total(booth)} boxes sold at booths</p></div><div><h3>${pending} cupboard orders pending</h3><button class="btn sec" onclick="setTab('orders')">Cupboard Orders</button></div><div><h3>${open} transfer requests open</h3><button class="btn sec" onclick="setTab('requests')">Transfer Requests</button></div></div></div>
+ <div class="card"><h2>🍪 Cookie movement overview</h2><p class="muted">A running summary of recorded cupboard receipts, distributions, troop stock and booth sales. These are different measures, not columns to add together.</p>
+ <div class="grid2"><div><h3>${total(received)} boxes received</h3><p class="muted">Cupboard orders marked received</p></div><div><h3>${total(troop)} troop on hand</h3><p class="muted">Only stock explicitly tracked as troop inventory</p></div><div><h3>${total(booth)} booth sales</h3><p class="muted">Recorded booth transactions</p></div></div>
+ <div style="overflow-x:auto"><table><tr><th>Cookie type</th><th>Received</th><th>Distributed to girls</th><th>Troop on hand</th><th>Booth sales</th></tr>${cookieRows}<tr class="tot"><td>Total boxes</td><td>${total(received)}</td><td>${total(distributed)}</td><td>${total(troop)}</td><td>${total(booth)}</td></tr></table></div>
+ <p class="muted"><strong>Definitions:</strong> Received = cupboard orders marked received; Distributed to girls = cumulative received cupboard orders assigned directly to girls, not their current balances; Troop on hand = inventory explicitly recorded under the troop; Booth sales = boxes sold at booths, which may have come from girls' stock. Girl-to-girl transfers do not increase the distributed total. Individual customer sales are not tracked here. Because this website currently sends received cupboard orders directly to girls and does not maintain a central troop-stock receiving workflow, Troop on hand may stay at zero even when the troop physically holds boxes. Do not use these figures as a complete physical inventory reconciliation.</p></div>
+ <div class="card"><h2>2027 schedule</h2><p class="muted">Dates are not yet confirmed for 2027. Refer to the Cookie Team and Resources tabs for coordination; archived 2026 resources are for reference only.</p></div>`;
 }
 
 function renderTeam(){return `<section class="dash-roles card"><h2>🍪 Cookie Team & Responsibilities</h2>
@@ -255,7 +290,7 @@ function addCustomerPayment(id){
 function renderOrders(){
  const can=coord||girlUserId;
  const opts=(coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g))).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
- const fields=state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="orderQty" data-key="${c.key}" placeholder="0"></div>`).join('');
+ const fields=state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line order-cookie-line"><input type="number" min="0" step="1" inputmode="numeric" class="orderQty" id="order_${c.key}" data-key="${c.key}" placeholder="0" aria-label="Boxes of ${c.name}"><label for="order_${c.key}">${c.name}</label></div>`).join('');
  const orderCookies=state.cookies.filter(c=>c.key!=='share');
  const orderAbbr={adv:'ADV',exp:'EXP',lem:'LEM',tre:'TRE',tm:'THM',pbp:'PBP',cdl:'CDL',pbs:'PBS',gf:'CCC',spk:'SPA',pp:'PAL'};
  const rows=[...(state.cupboardOrders||[])].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td class="order-check">✓</td><td class="order-check">${['ordered','received'].includes(o.status)?'✓':'—'}</td><td class="order-check">${o.status==='received'?'✓':'—'}</td>${orderCookies.map(c=>`<td class="order-qty">${o.items?.[c.key]||'—'}</td>`).join('')}<td>${o.notes||''}</td><td>${(coord||girlUserId===o.girlId)&&(coord||o.status==='requested')?`<button class="btn sec" onclick="editOrder('${o.id}')">Edit</button>`:''} ${coord?`<button class="btn sec" onclick="setOrderStatus('${o.id}','ordered')">Ordered</button> <button class="btn sec" onclick="setOrderStatus('${o.id}','received')">Received by girl</button> <button class="btn danger" onclick="deleteOrder('${o.id}')">Delete</button>`:''}</td></tr>`).join('');
@@ -280,7 +315,7 @@ function renderTransfers(){
   let list=[...state.transfers].reverse().map(t=>`<tr><td>${t.date}</td><td>${girlName(t.from)}&rarr;${girlName(t.to)}</td><td>${t.qty} ${state.cookies.find(c=>c.key===t.cookie)?.name||''}</td><td>${t.note||''}</td>
     <td class="row-actions">${coord||t.createdByGirlId===girlUserId?`<button class="btn sec" onclick="editTransfer('${t.id}')">Edit</button> <button class="btn danger" onclick="delTransfer('${t.id}')">Delete</button>`:''}</td></tr>`).join('');
   const form=coord||girlUserId?`<div class="card"><h2>Record a transfer</h2>
-  <p class="muted">Move cookies directly between girls. Either family can record the transfer.</p>
+  <p class="muted">Record a direct girl-to-girl transfer here only when it was not fulfilled through Transfer Requests. Request fulfillments appear here automatically; do not enter them twice.</p>
   <div class="grid2"><div><label>From</label><select id="tFrom">${entityOpts}</select></div><div><label>To</label><select id="tTo">${entityOpts}</select></div></div>
   <div class="grid2"><div><label>Cookie</label><select id="tCookie">${cookieOpts}</select></div><div><label>Boxes</label><input type="number" id="tQty" min="0"></div></div>
   <label>Date</label><input type="date" id="tDate" value="${new Date().toISOString().slice(0,10)}">
@@ -348,7 +383,7 @@ function requestTable(items,title){
 function renderRequests(){
  const cookieOpts=state.cookies.filter(c=>c.key!=='share').map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
  const girlOpts=(coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g))).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
- const createForm=coord||girlUserId?`<div class="card"><h2>Post a transfer request</h2><p class="muted">Request cookies or offer extras. Partial fulfillment is supported.</p><label>Girl Scout</label><select id="qGirl">${girlOpts}</select><div class="grid2"><div><label>Request type</label><select id="qType"><option value="need">I need</option><option value="give">I can give</option></select></div><div><label>Date</label><input type="date" id="qDate" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="grid2"><div><label>Cookie</label><select id="qCookie">${cookieOpts}</select></div><div><label>Total boxes</label><input type="number" min="1" id="qQty"></div></div><label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p>Sign in to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
+ const createForm=coord||girlUserId?`<div class="card"><h2>Post a transfer request</h2><p class="muted">Request cookies or offer extras. Fulfill requests in the table below; each fulfillment is automatically added to Transfer History. Partial fulfillment is supported.</p><label>Girl Scout</label><select id="qGirl">${girlOpts}</select><div class="grid2"><div><label>Request type</label><select id="qType"><option value="need">I need</option><option value="give">I can give</option></select></div><div><label>Date</label><input type="date" id="qDate" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="grid2"><div><label>Cookie</label><select id="qCookie">${cookieOpts}</select></div><div><label>Total boxes</label><input type="number" min="1" id="qQty"></div></div><label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p>Sign in to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
  const all=[...(state.transferRequests||[])].reverse();
  return createForm+`<h2 class="requests-heading" style="color:var(--ink)!important;font-weight:700">Open and fulfilled requests</h2>`+requestTable(all.filter(r=>requestRemaining(r)>0),'Open requests')+requestTable(all.filter(r=>requestRemaining(r)===0),'Fulfilled requests');
 }
