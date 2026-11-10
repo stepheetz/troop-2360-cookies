@@ -65,7 +65,7 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 .resource-link{display:flex;flex-direction:column;gap:5px;border:1px solid var(--line);border-radius:8px;padding:10px;text-decoration:none;color:var(--ink);overflow-wrap:anywhere;font:12px/1.4 Verdana,sans-serif}
 .resource-link:hover{border-color:var(--green);background:rgba(0,131,79,.06)}
 .resource-link small{color:var(--sub)}
-.past-booths-heading,.requests-heading{color:var(--ink)!important;font-weight:700}.role-entry ul{margin:4px 0 10px;padding-left:18px}.role-entry li{margin:2px 0;font-size:.81rem;line-height:1.35}
+.past-booths-heading,.requests-heading{color:var(--ink)!important;font-weight:800}.request-section-heading{color:#241b12!important;font-weight:800!important;opacity:1!important} :root[data-theme="dark"] .request-section-heading{color:#fff5e6!important}@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .request-section-heading{color:#fff5e6!important}}.role-entry ul{margin:4px 0 10px;padding-left:18px}.role-entry li{margin:2px 0;font-size:.81rem;line-height:1.35}
 .table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}
 .booth-history{width:max-content;min-width:100%;border-collapse:collapse;font:11px/1.4 Verdana,sans-serif}
 .booth-history th,.booth-history td{padding:7px 8px;border:1px solid var(--line);vertical-align:top;white-space:nowrap}
@@ -378,14 +378,14 @@ function requestTable(items,title){
   const action=(canFulfill?`<button class="btn" onclick="fulfillRequest('${r.id}')">Fulfill</button>`:'')+(allowed?`<button class="btn sec" onclick="editRequest('${r.id}')">Edit</button>`:'')+(allowed&&!(r.fulfillments||[]).length?`<button class="btn danger" onclick="delRequest('${r.id}')">Delete</button>`:'');
   return `<tr><td><b>${girlName(r.requesterId)}</b></td><td>${r.date||''}</td><td>${r.type==='give'?'I can give':'I need'}</td>${cells}<td>${rem}</td><td>${r.note||''}</td><td>${actor}</td><td>${quantity}</td><td style="white-space:nowrap">${action}</td></tr>`;
  }).join('');
- return `<div class="card"><h2 style="color:var(--ink)">${title}</h2><div style="overflow-x:auto"><table><thead><tr><th>Girl</th><th>Date</th><th>Type</th>${heads}<th>Remaining</th><th>Notes</th><th>Fulfilled By</th><th>Quantity</th><th>Fulfill / Edit / Delete</th></tr></thead><tbody>${rows||`<tr><td colspan="19">No ${title.toLowerCase()}.</td></tr>`}</tbody></table></div></div>`;
+ return `<div class="card"><h2 class="request-section-heading">${title}</h2><div style="overflow-x:auto"><table><thead><tr><th>Girl</th><th>Date</th><th>Type</th>${heads}<th>Remaining</th><th>Notes</th><th>Fulfilled By</th><th>Quantity</th><th>Fulfill / Edit / Delete</th></tr></thead><tbody>${rows||`<tr><td colspan="19">No ${title.toLowerCase()}.</td></tr>`}</tbody></table></div></div>`;
 }
 function renderRequests(){
  const cookieOpts=state.cookies.filter(c=>c.key!=='share').map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
  const girlOpts=(coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g))).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
  const createForm=coord||girlUserId?`<div class="card"><h2>Post a transfer request</h2><p class="muted">Request cookies or offer extras. Fulfill requests in the table below; each fulfillment is automatically added to Transfer History. Partial fulfillment is supported.</p><label>Girl Scout</label><select id="qGirl">${girlOpts}</select><div class="grid2"><div><label>Request type</label><select id="qType"><option value="need">I need</option><option value="give">I can give</option></select></div><div><label>Date</label><input type="date" id="qDate" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="grid2"><div><label>Cookie</label><select id="qCookie">${cookieOpts}</select></div><div><label>Total boxes</label><input type="number" min="1" id="qQty"></div></div><label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p>Sign in to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
  const all=[...(state.transferRequests||[])].reverse();
- return createForm+`<h2 class="requests-heading" style="color:var(--ink)!important;font-weight:700">Open and fulfilled requests</h2>`+requestTable(all.filter(r=>requestRemaining(r)>0),'Open requests')+requestTable(all.filter(r=>requestRemaining(r)===0),'Fulfilled requests');
+ return createForm+`<h2 class="requests-heading" style="font-weight:800">Open and fulfilled requests</h2>`+requestTable(all.filter(r=>requestRemaining(r)>0),'Open requests')+requestTable(all.filter(r=>requestRemaining(r)===0),'Fulfilled requests');
 }
 function editRequest(id){
  const r=(state.transferRequests||[]).find(x=>x.id===id);if(!r||(!coord&&r.requesterId!==girlUserId))return;
