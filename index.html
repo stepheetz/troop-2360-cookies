@@ -84,7 +84,7 @@ input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);bo
 </head>
 <body>
 <header>
-  <div><h1>🍪 Troop 2360 Cookie Tracker</h1><div class="sub">2027 Cookie Season · Girl inventory only <span id="status">Connecting…</span></div></div>
+  <div><h1>🍪 Troop 2360 Cookie Tracker</h1><div class="sub">2027 Cookie Season · Troop coordination · Digital Cookie for individual sales <span id="status">Connecting…</span></div></div>
   <div class="header-actions"><button id="girlBtn" onclick="toggleGirlLogin()">Family sign in</button><button id="coordBtn" onclick="toggleCoord()">Coordinator: Locked</button></div>
 </header>
 <nav id="tabs"></nav>
@@ -112,6 +112,11 @@ const COOKIES=[
  {key:'gf',name:'Caramel Chocolate Chip (GF)',price:7},
  {key:'spk',name:'Sparkables',price:6},{key:'pp',name:'PatchPals',price:6},
  {key:'share',name:'Cookie Share (Donation)',price:6}];
+const FAMILY_CONTACTS={
+ Amelia:['Aubrey Buracchio','actingbug27@gmail.com'],Carissa:['Belinda Cho','bdinpdl@gmail.com'],Cassie:['Jennifer Nguyen','jennifer.x.nguyen@gmail.com'],Coco:['Ben Brode / Min Brode','bbrode@gmail.com / mink42@gmail.com'],Emersyn:['Melissa Dela Rosa','melissatayag@gmail.com'],Evelyn:['Jessica Liu','itzmejessica@gmail.com'],Katherine:['Kevin Yein / Michelle Chu','kevinwyein@gmail.com / michellena@gmail.com'],Keira:['Crystal Kummer','crystal.kummer@gmail.com'],Makenna:['Jennifer Silvers','jenniferrsilvers@gmail.com'],Molly:['Stephanie O’Keeffe / Sean O’Keeffe','stepheetz@gmail.com / seanokee@gmail.com'],Sophia:['Katrina Wu','diaz104@mail.chapman.edu'],Madison:['Michael James',''],Morgan:['Michael James','']
+};
+const NON_PARTICIPANTS=new Set(['Madison','Morgan']);
+function isParticipating(g){return !NON_PARTICIPANTS.has(g.name)}
 const GIRL_NAMES=['Amelia','Carissa','Cassie','Coco','Emersyn','Evelyn','Katherine','Keira','Madison','Morgan','Makenna','Molly','Sophia'];
 function uid(){return Math.random().toString(36).slice(2,10)}
 function defaultState(){
@@ -159,7 +164,7 @@ function toggleCoord(){
 
 function toggleGirlLogin(){
   if(girlUserId){girlUserId=null;sessionStorage.removeItem('girlUserId');render();return}
-  const opts=state.girls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const opts=state.girls.filter(isParticipating).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   document.body.insertAdjacentHTML('beforeend',`<div class="overlay" id="girlLogin"><div class="modal"><h2>Family sign in</h2><label>Girl Scout</label><select id="loginGirl">${opts}</select><label>PIN</label><input id="loginPin" type="password" inputmode="numeric" maxlength="8" placeholder="Enter PIN" onkeydown="if(event.key==='Enter')doGirlLogin()"><button class="btn" onclick="doGirlLogin()">Sign in</button> <button class="btn sec" onclick="closeGirlLogin()">Cancel</button><p class="muted">Ask the cookie coordinator if you need your PIN.</p></div></div>`);
   setTimeout(()=>document.getElementById('loginPin')?.focus(),0);
 }
@@ -173,7 +178,7 @@ function doGirlLogin(){
 
 const RESOURCE_FILES=[{"name": "116 BSP2026.pdf", "url": "116%20BSP2026.pdf", "kind": "PDF"}, {"name": "2025-Troop-Balance-Summary-pdf.pdf", "url": "2025-Troop-Balance-Summary-pdf.pdf", "kind": "PDF"}, {"name": "2026 Girl Scout Cookie Sales - TEMPLATE.xlsx", "url": "2026%20Girl%20Scout%20Cookie%20Sales%20-%20TEMPLATE.xlsx", "kind": "XLSX"}, {"name": "2026-Cookie-Family-Guide_Final.pdf", "url": "2026-Cookie-Family-Guide_Final.pdf", "kind": "PDF"}, {"name": "2026_BFF_AllergenGuide.pdf", "url": "2026_BFF_AllergenGuide.pdf", "kind": "PDF"}, {"name": "2026_BFF_CookieLineUp_PRINT.pdf", "url": "2026_BFF_CookieLineUp_PRINT.pdf", "kind": "PDF"}, {"name": "2026_BFF_CookieLineUp_PRINT.pdf-2.pdf", "url": "2026_BFF_CookieLineUp_PRINT.pdf-2.pdf", "kind": "PDF"}, {"name": "2026_Cookie-Program-Girl-Rewards.pdf", "url": "2026_Cookie-Program-Girl-Rewards.pdf", "kind": "PDF"}, {"name": "ABC-Cookie-Booth-Tally-Sheet-2026.pdf", "url": "ABC-Cookie-Booth-Tally-Sheet-2026.pdf", "kind": "PDF"}, {"name": "Booth Sales Best Practices 2026 12-26-25.pdf", "url": "Booth%20Sales%20Best%20Practices%202026%2012-26-25.pdf", "kind": "PDF"}, {"name": "BoothTimesReport.pdf", "url": "BoothTimesReport.pdf", "kind": "PDF"}, {"name": "cookie dos_ and don_ts.pdf", "url": "cookie%20dos_%20and%20don_ts.pdf", "kind": "PDF"}, {"name": "cookie line up prices.pdf", "url": "cookie%20line%20up%20prices.pdf", "kind": "PDF"}, {"name": "Cookie-Booth-Sale-Guidelines.pdf", "url": "Cookie-Booth-Sale-Guidelines.pdf", "kind": "PDF"}, {"name": "Cookie-Share-Receipts.pdf", "url": "Cookie-Share-Receipts.pdf", "kind": "PDF"}, {"name": "Damaged-Product-Report-Cookies-2025.pdf", "url": "Damaged-Product-Report-Cookies-2025.pdf", "kind": "PDF"}, {"name": "Donate to Troops.png", "url": "Donate%20to%20Troops.png", "kind": "PNG"}, {"name": "Forms of Payment.png", "url": "Forms%20of%20Payment.png", "kind": "PNG"}, {"name": "How-Many-GS-Cookies.pdf", "url": "How-Many-GS-Cookies.pdf", "kind": "PDF"}, {"name": "Irvine-Business-Lic.-Exp.-02.28.26.pdf", "url": "Irvine-Business-Lic.-Exp.-02.28.26.pdf", "kind": "PDF"}, {"name": "Irvine-Company-Entry-Permit_2026.pdf", "url": "Irvine-Company-Entry-Permit_2026.pdf", "kind": "PDF"}, {"name": "Prop_65_Warning_Sign.pdf", "url": "Prop_65_Warning_Sign.pdf", "kind": "PDF"}, {"name": "Troop-Initial-Order-Bonus_2026.pdf", "url": "Troop-Initial-Order-Bonus_2026.pdf", "kind": "PDF"}, {"name": "Troop-Plan-Book-2026_FINAL_Posted.pdf", "url": "Troop-Plan-Book-2026_FINAL_Posted.pdf", "kind": "PDF"}, {"name": "Tustin-Business-License-2026.pdf", "url": "Tustin-Business-License-2026.pdf", "kind": "PDF"}];
 const TIMELINE_2026=[["Nov 24–Jan 14", "Preparation, training, family meeting, booth lottery"], ["Dec 15", "Initial troop order deadline"], ["Dec 22–31", "Cookie materials mailed"], ["Dec 29", "Digital Cookie volunteer registration"], ["Jan 2", "Digital Cookie girl registration"], ["Jan 6", "Pre-orders and online sales begin"], ["Jan 8", "Troop banking information"], ["Jan 11", "Cookie kickoff"], ["Jan 20", "Booked booth sales report"], ["Jan 23–25", "Initial order pickup and distribution"], ["Jan 24", "Mega Delivery"], ["Jan 25", "In-hand sales and deliveries begin"], ["Jan 27–28", "First-come booth reservations"], ["Jan 29", "Cookie cupboards open"], ["Feb 1–Mar 15", "Collect and reconcile girl payments"], ["Feb 6–Mar 15", "Booth sales"], ["Feb 26", "Cookie swap site available"], ["Mar 15", "Cookie program ends / collect final balances"], ["Mar 15–18", "End-of-sale processing"], ["Mar 17", "Final deposit / payment adjustment deadline"], ["Mar 18", "Final troop report due"], ["Mar 19", "Final ACH debit begins"], ["May 1–15", "Girl rewards pickup"], ["May 22", "Final reward adjustments"]];
-const TABS=[['dash','Dashboard'],['team','Cookie Team'],['mine','My Records'],['orders','Cupboard Orders'],['transfers','Transfers'],['requests','Transfer Requests'],['payments','Payments'],['booths','Booth Sales'],['online','Online Sales'],['resources','Resources'],['export','Copy to Sheets'],['coord','Coordinator']];
+const TABS=[['dash','Dashboard'],['team','Cookie Team'],['orders','Cupboard Orders'],['requests','Transfer Requests'],['transfers','Transfer History'],['booths','Booth Sales'],['payments','Payments'],['resources','Resources'],['export','Copy to Sheets'],['coord','Coordinator']];
 let activeTab='dash', selectedGirlId=null, editingReceiptId=null;
 function setTab(t){activeTab=t;render();}
 function setMineGirl(id){selectedGirlId=id;render();}
@@ -186,7 +191,7 @@ function render(){
   girlBtn.textContent=signedGirl?'Signed in: '+signedGirl.name:'Family sign in';
   girlBtn.className=signedGirl?'on':'';
   const nav=document.getElementById('tabs');
-  nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${k==='mine'&&signedGirl?signedGirl.name+'\'s Records':l}</button>`).join('');
+  nav.innerHTML=TABS.map(([k,l])=>`<button class="${activeTab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('');
   document.getElementById('app').innerHTML=({dash:renderDash,team:renderTeam,mine:renderMine,orders:renderOrders,transfers:renderTransfers,requests:renderRequests,payments:renderPayments,booths:renderBooths,online:renderOnline,resources:renderResources,export:renderSheetExport,coord:renderCoord}[activeTab])();
 }
 
@@ -198,22 +203,11 @@ function totalOnlineByType(){let t=zeroMap(); state.online.forEach(o=>state.cook
 function escapeText(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function renderResources(){return `<div class="card"><h2>📚 Resources</h2><p class="muted">2026 reference materials. Replace outdated files with current council documents before the 2027 season. Resource files should be uploaded in the same GitHub folder as index.html.</p><div class="resources-grid">${RESOURCE_FILES.map(f=>`<a class="resource-link" href="${f.url}" target="_blank" rel="noopener"><span>📄 ${escapeText(f.name)}</span><small>${f.kind} · 2026 reference ↗</small></a>`).join('')}</div></div>`;}
 function renderDash(){
-  const girlInv=totalGirlInv(), girlSales=totalGirlSalesByType(), booth=totalBoothsByType(), online=totalOnlineByType();
-  const boothCash=state.booths.reduce((s,b)=>s+(+b.cash||0),0), boothDig=state.booths.reduce((s,b)=>s+(+b.digital||0),0), boothDon=state.booths.reduce((s,b)=>s+(+b.donations||0),0);
-  const onlineAmt=state.online.reduce((s,o)=>s+(+o.amount||0),0);
-  const customerPaid=(state.girlSales||[]).reduce((s,o)=>s+(+o.amountPaid||0),0);
-  let rows=state.cookies.map(c=>{
-    const troopQ=0, girlQ=girlInv[c.key]||0, directQ=girlSales[c.key]||0, boothQ=booth[c.key]||0, onlineQ=online[c.key]||0;
-    return `<tr><td>${c.name}</td><td>${girlQ}</td><td>${directQ}</td><td>${boothQ}</td><td>${onlineQ}</td></tr>`;
-  }).join('');
-  return `<div class="dashboard-layout"><section class="dash-timeline card"><h2>📅 Program timeline</h2><p class="muted">2026 dates from Troop Plan Book, pp. 4–5. Reference only; update for 2027 when council confirms dates.</p><div class="timeline-list">${TIMELINE_2026.map(([date,event])=>`<div class="timeline-item"><strong>${date}</strong><span>${event}</span></div>`).join('')}</div></section><section class="dash-stats"><div class="card"><h2>Troop overview</h2>
-  <table><tr><th>Cookie</th><th>With girls</th><th>Customer sales</th><th>Sold at booths</th><th>Sold online</th></tr>${rows}</table>
-  </div>
-  <div class="card"><h2>Money raised so far</h2>
-  <table><tr><td>Customer payments collected</td><td>${money(customerPaid)}</td></tr><tr><td>Booth cash</td><td>${money(boothCash)}</td></tr><tr><td>Booth digital/card</td><td>${money(boothDig)}</td></tr><tr><td>Booth donations</td><td>${money(boothDon)}</td></tr><tr><td>Online sales</td><td>${money(onlineAmt)}</td></tr>
-  <tr class="tot"><td>Total raised</td><td>${money(customerPaid+boothCash+boothDig+boothDon+onlineAmt)}</td></tr></table>
-  <p class="muted">All physical inventory belongs to individual girls; there is no shared troop stock. Booth and online totals are lifetime boxes sold in each channel.</p>
-  </div></section></div>`;
+ const participating=state.girls.filter(g=>isParticipating(g));
+ const open=(state.transferRequests||[]).filter(r=>r.status!=='fulfilled'&&r.status!=='closed').length;
+ const pending=(state.cupboardOrders||[]).filter(o=>o.status!=='received').length;
+ const boothBoxes=(state.booths||[]).reduce((n,b)=>n+Object.values(b.sales||{}).reduce((a,v)=>a+(+v||0),0),0);
+ return `<div class="card"><h2>2027 Troop Cookie Coordination</h2><p class="muted">Use this site to coordinate cupboard pickups, cookie transfers, booth sales and payments. Families should continue tracking their own inventory and customer/online sales in Digital Cookie. Google Sheets is manual copy/paste only.</p><div class="grid2"><div><h3>${participating.length} participating Girl Scouts</h3><p class="muted">${participating.map(g=>escapeText(g.name)).join(', ')}</p></div><div><h3>${state.booths.length} booths recorded</h3><p class="muted">${boothBoxes} boxes recorded at booths</p></div><div><h3>${pending} cupboard orders pending</h3><button class="btn sec" onclick="setTab('orders')">Cupboard Orders</button></div><div><h3>${open} transfer requests open</h3><button class="btn sec" onclick="setTab('requests')">Transfer Requests</button></div></div></div><div class="card"><h2>2027 schedule</h2><p class="muted">Dates are not yet confirmed for 2027. Refer to the Cookie Team and Resources tabs for coordination; the archived 2026 resources are reference only.</p></div>`;
 }
 
 function renderTeam(){return `<section class="dash-roles card"><h2>🍪 Cookie Team & Responsibilities</h2>
@@ -260,7 +254,7 @@ function addCustomerPayment(id){
 
 function renderOrders(){
  const can=coord||girlUserId;
- const opts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+ const opts=(coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g))).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
  const fields=state.cookies.filter(c=>c.key!=='share').map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="orderQty" data-key="${c.key}" placeholder="0"></div>`).join('');
  const orderCookies=state.cookies.filter(c=>c.key!=='share');
  const orderAbbr={adv:'ADV',exp:'EXP',lem:'LEM',tre:'TRE',tm:'THM',pbp:'PBP',cdl:'CDL',pbs:'PBS',gf:'CCC',spk:'SPA',pp:'PAL'};
@@ -342,7 +336,7 @@ function requestTable(items,title){
   const rem=requestRemaining(r),done=rem===0,allowed=coord||girlUserId===r.requesterId;
   const cells=keys.map(k=>`<td style="text-align:center">${r.cookie===k?r.qty:'–'}</td>`).join('');
   const hist=(r.fulfillments||[]).map(f=>`${girlName(f.actorId)}: ${f.qty}`).join('; ');
-  const actorOpts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  const actorOpts=(coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g))).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   const canFulfill=!done&&(coord||girlUserId);
   const actor=canFulfill?`<select aria-label="Fulfilled by" id="qActor_${r.id}" style="min-width:105px">${actorOpts}</select>`:(hist||'—');
   const quantity=canFulfill?`<input aria-label="Quantity to fulfill" id="qFill_${r.id}" type="number" min="1" max="${rem}" placeholder="0" style="width:65px;min-width:65px">`:'—';
@@ -353,7 +347,7 @@ function requestTable(items,title){
 }
 function renderRequests(){
  const cookieOpts=state.cookies.filter(c=>c.key!=='share').map(c=>`<option value="${c.key}">${c.name}</option>`).join('');
- const girlOpts=(coord?state.girls:state.girls.filter(g=>g.id===girlUserId)).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+ const girlOpts=(coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g))).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
  const createForm=coord||girlUserId?`<div class="card"><h2>Post a transfer request</h2><p class="muted">Request cookies or offer extras. Partial fulfillment is supported.</p><label>Girl Scout</label><select id="qGirl">${girlOpts}</select><div class="grid2"><div><label>Request type</label><select id="qType"><option value="need">I need</option><option value="give">I can give</option></select></div><div><label>Date</label><input type="date" id="qDate" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="grid2"><div><label>Cookie</label><select id="qCookie">${cookieOpts}</select></div><div><label>Total boxes</label><input type="number" min="1" id="qQty"></div></div><label>Note</label><input id="qNote" placeholder="optional details"><button class="btn" onclick="addRequest()">Post request</button></div>`:`<div class="card"><h2>Post a transfer request</h2><p>Sign in to post or fulfill requests.</p><button class="btn" onclick="toggleGirlLogin()">Family sign in</button></div>`;
  const all=[...(state.transferRequests||[])].reverse();
  return createForm+`<h2 class="requests-heading" style="color:var(--ink)!important;font-weight:700">Open and fulfilled requests</h2>`+requestTable(all.filter(r=>requestRemaining(r)>0),'Open requests')+requestTable(all.filter(r=>requestRemaining(r)===0),'Fulfilled requests');
@@ -400,7 +394,7 @@ function delRequest(id){
 
 function paymentMethodLabel(method){return method==='cash'?'Cash':method==='zelle-venmo'?'Zelle/Venmo':'Other'}
 function renderPayments(){
-  const permittedGirls=coord?state.girls:state.girls.filter(g=>g.id===girlUserId);
+  const permittedGirls=coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g));
   const girlOpts=permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   const form=coord||girlUserId?`<div class="card"><h2>Record a payment to the troop</h2><p class="muted">Log money a family has turned in to the troop.</p>
     <label>Girl Scout</label><select id="pGirl">${girlOpts}</select>
@@ -497,7 +491,7 @@ function delBooth(id){
 }
 
 function renderOnline(){
-  const permittedGirls=coord?state.girls:state.girls.filter(g=>g.id===girlUserId);
+  const permittedGirls=coord?state.girls.filter(isParticipating):state.girls.filter(g=>g.id===girlUserId&&isParticipating(g));
   let girlOpts=permittedGirls.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
   let cookieInputs=state.cookies.map(c=>`<div class="cookie-line"><label>${c.name}</label><input type="number" min="0" class="onlineCookieQty" data-key="${c.key}" placeholder="0"></div>`).join('');
   let list=[...state.online].reverse().map(o=>`<tr><td>${o.date}</td><td>${girlName(o.girlId)}</td><td>${state.cookies.map(c=>o.items[c.key]?`${c.name} ${o.items[c.key]}`:null).filter(Boolean).join(', ')||'—'}</td><td>${money(o.amount)}</td><td>${o.delivered?'Girl delivery':'Shipped'}</td>
@@ -589,18 +583,18 @@ async function copySheetExport(){
 function renderCoord(){
   if(!coord)return `<div class="card"><h2>Coordinator area</h2><p class="muted">Unlock with the button in the top right to manage the roster, prices, payments, and delete entries.</p></div>`;
   let girlRows=state.girls.map(g=>{const rec=state.girlInv[g.id]||{paid:0};
-    return `<tr><td>${g.name}</td><td><input type="password" inputmode="numeric" maxlength="8" id="pin_${g.id}" value="${state.girlPins?.[g.id]||''}" placeholder="Set PIN" style="width:90px"></td><td><input type="number" step="0.01" id="paid_${g.id}" value="${rec.paid||0}" style="width:90px"></td><td><button class="btn danger" onclick="removeGirl('${g.id}')">Remove</button></td></tr>`}).join('');
+    return `<tr><td>${escapeText(g.name)}${isParticipating(g)?'':' (not participating)'}</td><td><small>${escapeText((FAMILY_CONTACTS[g.name]||[]).join(' · '))}</small></td><td><input type="password" inputmode="numeric" maxlength="8" id="pin_${g.id}" value="${state.girlPins?.[g.id]||''}" placeholder="Set PIN" style="width:90px"></td><td><input type="number" step="0.01" id="paid_${g.id}" value="${rec.paid||0}" style="width:90px"></td><td><button class="btn danger" onclick="removeGirl('${g.id}')">Remove</button></td></tr>`}).join('');
   let priceRows=state.cookies.map(c=>`<tr><td>${c.name}</td><td><input type="number" step="0.01" id="price_${c.key}" value="${c.price}" style="width:80px"></td></tr>`).join('');
   return `<div class="card"><h2>Roster <span class="badge">Coordinator</span></h2>
-  <p class="muted">Assign each family a private 4–8 digit PIN. They will use it to manage only their own transfers and online sales.</p>
-  <table><tr><th>Girl</th><th>Family PIN</th><th>Amount paid ($)</th><th></th></tr>${girlRows}</table>
+  <p class="muted">Participating families currently use a girl-specific PIN for access to coordination records. This is not Firebase Authentication or secure role-based access. Family contacts below are reference information only, not login accounts. Do not store sensitive information here.</p>
+  <table><tr><th>Girl</th><th>Family contact</th><th>Family PIN</th><th>Amount paid ($)</th><th></th></tr>${girlRows}</table>
   <button class="btn" onclick="saveRosterSettings()">Save PINs &amp; payments</button>
   <div class="grid2" style="margin-top:12px"><div><label>Add a girl</label><input id="newGirl" placeholder="First name"></div><div style="align-self:end"><button class="btn sec" onclick="addGirl()">Add girl</button></div></div>
   </div>
   <div class="card"><h2>Cookie prices</h2><table><tr><th>Cookie</th><th>Price/box</th></tr>${priceRows}</table><button class="btn" onclick="savePrices()">Save prices</button></div>
   <div class="card"><h2>Backup &amp; settings</h2>
   <p class="muted">Data syncs through the shared troop database. Download a backup for safekeeping or import one to replace the current shared data.</p>
-  <button class="btn sec" onclick="exportData()">Download backup (.json)</button>
+  <button class="btn sec" onclick="exportData()">Download backup (.json)</button><p class="muted">Test transactions have NOT been cleared automatically. Back up the data before any reset. The reset option below removes transaction history from the shared database for everyone.</p><button class="btn danger" onclick="resetTestTransactions()">Reset test transactions…</button>
   <label style="margin-top:10px">Import backup file</label><input type="file" id="importFile" accept=".json">
   <button class="btn sec" onclick="importData()">Import &amp; replace all data</button>
   <label style="margin-top:14px">Change coordinator password</label><input id="newPw" placeholder="new password">
@@ -624,6 +618,17 @@ function changePw(){const p=document.getElementById('newPw').value.trim(); if(!p
 function exportData(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='troop2360-cookies-backup.json'; a.click();
+}
+function resetTestTransactions(){
+ if(!coord)return;
+ if(!confirm('Have you downloaded and saved a JSON backup? This reset affects every user and cannot be undone without that backup.'))return;
+ const typed=prompt('To permanently clear ALL transaction records, type RESET TEST DATA exactly:');
+ if(typed!=='RESET TEST DATA')return alert('Reset cancelled; no data changed.');
+ for(const k of ['cupboardOrders','transfers','transferRequests','inventoryReceipts','payments','booths','online','girlSales'])state[k]=[];
+ state.girlInv=state.girlInv||{};
+ for(const g of state.girls)state.girlInv[g.id]={inv:{},paid:0};
+ state.troopInv={};
+ save();render();alert('Reset submitted. Confirm Live status and refresh to verify.');
 }
 function importData(){
   const f=document.getElementById('importFile').files[0]; if(!f){alert('Choose a file first.');return}
